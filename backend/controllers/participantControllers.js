@@ -1,0 +1,75 @@
+import ParticipantModel from '../models/participant.models.js';
+import EventModel from '../models/events.models.js';
+
+export const createParticipation = async (req, res) => {
+  try {
+    const { eventId, name, email, phone, ticketName, quantity = 1, isVolunteer = false, tshirtSize } = req.body || {};
+    if (!eventId || !name || !email || !ticketName) {
+      return res.status(400).json({ error: 'eventId, name, email, ticketName are required' });
+    }
+
+    const event = await EventModel.findById(eventId);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    const ticket = (event.ticket || []).find(t => t.name === String(ticketName).toUpperCase());
+    if (!ticket) return res.status(400).json({ error: 'Invalid ticket' });
+
+    const qty = Math.max(1, Number(quantity || 1));
+    const amount = Number(ticket.price) * qty;
+
+    const doc = await ParticipantModel.create({
+      name,
+      email: String(email).toLowerCase(),
+      phone,
+      event: event._id,
+      eventTitle: event.title,
+      ticketName: ticket.name,
+      ticketPrice: ticket.price,
+      quantity: qty,
+      amount,
+      isVolunteer: Boolean(isVolunteer),
+      tshirtSize: isVolunteer ? (tshirtSize || null) : null,
+    });
+
+    if (isVolunteer) {
+      await EventModel.findByIdAndUpdate(event._id, { $inc: { volunteersApplied: 1 } });
+    } else {
+      // Increment total participant count by created quantity
+      await EventModel.findByIdAndUpdate(event._id, { $inc: { participantCount: qty } });
+    }
+
+    const updatedEvent = await EventModel.findById(event._id).select('participantCount volunteersApplied');
+
+    return res.status(201).json({
+      success: true,
+      participant: doc,
+      eventStats: updatedEvent
+    });
+  } catch (err) {
+    console.error('createParticipation error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getParticipantsByEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const list = await ParticipantModel.find({ event: eventId }).sort({ createdAt: -1 });
+    return res.json(list);
+  } catch (err) {
+    console.error('getParticipantsByEvent error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// New function to get all participants regardless of event
+export const getAllParticipants = async (req, res) => {
+  try {
+    const list = await ParticipantModel.find({}).sort({ createdAt: -1 });
+    console.log(`Returning ${list.length} participants across all events`);
+    return res.json(list);
+  } catch (err) {
+    console.error('getAllParticipants error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
