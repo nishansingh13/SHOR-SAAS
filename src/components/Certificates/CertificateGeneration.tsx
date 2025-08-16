@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useEvents } from '../../contexts/EventContext';
 import { useParticipants, type Participant } from '../../contexts/ParticipantContext';
 import { useTemplates } from '../../contexts/TemplateContext';
+import { useCertificates } from '../../contexts/CertificateContext';
 import { 
   Award, 
   Download, 
@@ -27,8 +28,26 @@ type PreviewContent =
 
 const CertificateGeneration: React.FC = () => {
   const { events } = useEvents();
-  const { getParticipantsByEvent, generateCertificate, loadParticipants } = useParticipants();
+  const { getParticipantsByEvent, loadParticipants, updateParticipantCertificateStatus } = useParticipants();
   const { templates } = useTemplates();
+  const { 
+    generateCertificate, 
+    downloadCertificate: downloadCertificateFile, 
+    sendEmail, 
+    loadCertificates, 
+    certificates 
+  } = useCertificates();
+  
+  // This is a temporary bridge until we fully refactor to use only CertificateContext
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).updateParticipantCertificateStatus = updateParticipantCertificateStatus;
+    return () => {
+      // Clean up when component unmounts
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).updateParticipantCertificateStatus;
+    };
+  }, [updateParticipantCertificateStatus]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [previewParticipant, setPreviewParticipant] = useState<Participant | null>(null);
@@ -38,11 +57,15 @@ const CertificateGeneration: React.FC = () => {
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   const eventParticipants = selectedEventId ? getParticipantsByEvent(selectedEventId) : [];
 
+  const eventCertificates = selectedEventId ? certificates.filter(c => String(c.eventId) === String(selectedEventId)) : [];
+
   useEffect(() => {
     if (selectedEventId) {
       loadParticipants(selectedEventId);
+      // Load certificates for this event
+      loadCertificates(selectedEventId);
     }
-  }, [selectedEventId, loadParticipants]);
+  }, [selectedEventId, loadParticipants, loadCertificates]);
   
   // Load participants for all events when component mounts
   useEffect(() => {
@@ -50,7 +73,9 @@ const CertificateGeneration: React.FC = () => {
     events.forEach(event => {
       loadParticipants(event.id);
     });
-  }, [events, loadParticipants]);
+    // Load all certificates
+    loadCertificates();
+  }, [events, loadParticipants, loadCertificates]);
 
   const handlePreview = (participant: Participant) => {
     if (!selectedTemplate) return;
@@ -96,31 +121,76 @@ const CertificateGeneration: React.FC = () => {
     
     setGenerating(true);
     
-    // Simulate generation process
+    // Generate certificates using the certificate context
     for (let i = 0; i < eventParticipants.length; i++) {
       const participant = eventParticipants[i];
       if (!participant.certificateGenerated) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        generateCertificate(participant.id, selectedEventId);
+        try {
+          // Use the certificate context to generate certificates
+          const certificate = await generateCertificate(participant.id, selectedEventId);
+          if (certificate) {
+            // Update the participant status
+            const participantId = participant.id;
+        
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).updateParticipantCertificateStatus?.(participantId, selectedEventId, certificate.id);
+          }
+        } catch (error) {
+          console.error(`Failed to generate certificate for ${participant.name}:`, error);
+        }
       }
     }
+    
+    // Reload certificates to refresh the list
+    await loadCertificates(selectedEventId);
     
     setGenerating(false);
   };
 
-  const downloadCertificate = async (participant: Participant, format: 'pdf' | 'jpg') => {
-    if (!selectedTemplate) return;
+  const handleDownloadCertificate = async (participant: Participant, format: 'pdf' | 'jpg') => {
+    if (!participant.certificateId) {
+      console.error('Cannot download certificate: missing certificate ID');
+      return;
+    }
     
-    // const content = generatePreviewContent(participant);
+    // Find certificate in our certificates array
+    const certificate = certificates.find(c => c.id === participant.certificateId);
     
-    if (format === 'pdf') {
-      // In a real implementation, you would use a library like jsPDF or html2pdf
-      console.log('Generating PDF for:', participant.name);
-    } else {
-      // In a real implementation, you would use html2canvas
-      console.log('Generating JPG for:', participant.name);
+    if (!certificate) {
+      console.error(`Certificate ID ${participant.certificateId} not found in certificates array`);
+      // Try to fetch certificates again to see if it's available
+      await loadCertificates(participant.eventId);
+      return;
+    }
+    
+    try {
+      // Use the certificate context to download the certificate
+      await downloadCertificateFile(participant.certificateId, format);
+    } catch (error) {
+      console.error(`Failed to download ${format} for ${participant.name}:`, error);
     }
   };
+
+  const handleSendEmail = async (participant: Participant) => {
+    if (!participant.certificateId) {
+      console.error('Cannot send certificate email: missing certificate ID');
+      return;
+    }
+
+    try {
+      const result = await sendEmail(participant.certificateId, participant.email);
+      if (result) {
+        alert(`Certificate sent successfully to ${participant.email}`);
+      } else {
+        alert(`Failed to send certificate to ${participant.email}`);
+      }
+    } catch (error) {
+      console.error(`Failed to send certificate to ${participant.email}:`, error);
+      alert(`Error sending certificate: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+
 
   const pendingCount = eventParticipants.filter(p => !p.certificateGenerated).length;
   const generatedCount = eventParticipants.filter(p => p.certificateGenerated).length;
@@ -299,7 +369,12 @@ const CertificateGeneration: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-500">
-                        {participant.certificateId || '-'}
+                        {/* show certificate number if available, fallback to id */}
+                        {(() => {
+                          if (!participant.certificateId) return '-';
+                          const cert = certificates.find(c => c.id === participant.certificateId);
+                          return cert?.certificateNumber || participant.certificateId || '-';
+                        })()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -316,36 +391,67 @@ const CertificateGeneration: React.FC = () => {
                         {participant.certificateGenerated && (
                           <>
                             <button
-                              onClick={() => downloadCertificate(participant, 'pdf')}
+                              onClick={() => handleDownloadCertificate(participant, 'pdf')}
                               className="text-emerald-600 hover:text-emerald-900 flex items-center"
+                              title="Download as PDF"
                             >
                               <FileText className="h-4 w-4 mr-1" />
                               PDF
                             </button>
                             <button
-                              onClick={() => downloadCertificate(participant, 'jpg')}
+                              onClick={() => handleDownloadCertificate(participant, 'jpg')}
                               className="text-purple-600 hover:text-purple-900 flex items-center"
+                              title="Download as JPG"
                             >
                               <Image className="h-4 w-4 mr-1" />
                               JPG
+                            </button>
+                            <button
+                              onClick={() => handleSendEmail(participant)}
+                              className="text-blue-600 hover:text-blue-900 flex items-center"
+                              title={`Send certificate to ${participant.email}`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              Email
                             </button>
                           </>
                         )}
                         {!participant.certificateGenerated && (
                           <button
-                            onClick={() => generateCertificate(participant.id, selectedEventId)}
+                            onClick={()=>generateCertificate(participant.id, selectedEventId)}
                             className="text-orange-600 hover:text-orange-900 flex items-center"
                           >
                             <Award className="h-4 w-4 mr-1" />
-                            Generate
+                            Generates
                           </button>
                         )}
+
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Certificates for this event */}
+      {selectedEventId && eventCertificates.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Certificates for {selectedEvent?.name}</h3>
+          <div className="space-y-2">
+            {eventCertificates.map((c) => {
+              const owner = eventParticipants.find(p => p.id === (c.participantId || ''))?.name || 'Unknown participant';
+              return (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-md border border-gray-100">
+                  <div className="text-sm text-gray-700">{c.certificateNumber || c.id}</div>
+                  <div className="text-sm text-gray-500">for: {owner}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -360,7 +466,7 @@ const CertificateGeneration: React.FC = () => {
               </h2>
               <div className="flex space-x-2">
                 <button
-                  onClick={() => downloadCertificate(previewParticipant, 'pdf')}
+                  onClick={() => handleDownloadCertificate(previewParticipant, 'pdf')}
                   className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
                 >
                   <Download className="h-4 w-4 mr-2" />

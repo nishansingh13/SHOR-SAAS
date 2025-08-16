@@ -75,7 +75,7 @@ interface ParticipantContextType {
   importParticipants: (eventId: string, data: ImportedRow[]) => void;
   updateParticipant: (id: string, data: Partial<Participant>, eventId: string) => void;
   deleteParticipant: (id: string, eventId: string) => void;
-  generateCertificate: (participantId: string, eventId: string) => Promise<string | null>;
+  updateParticipantCertificateStatus: (participantId: string, eventId: string, certificateId: string) => void; // New method
   sendEmail: (participantId: string, eventId: string) => Promise<boolean>;
   refreshAllParticipants: () => Promise<void>; // New method to refresh all loaded events
 }
@@ -105,27 +105,44 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const data: BackendParticipant[] = response.data;
       
       // Map backend data to frontend model
-      const mapped: Participant[] = (Array.isArray(data) ? data : []).map((p: BackendParticipant) => ({
-        id: p._id || p.id || '',
-        eventId: typeof p.event === 'string' ? p.event : p.event?._id || '',
-        name: p.name || p.fullName || '',
-        email: (p.email || '').toLowerCase(),
-        additionalData: {
-          phone: p.phone,
-          ticketName: p.ticketName || p.ticket?.name,
-          ticketPrice: p.ticketPrice ?? p.ticket?.price,
-          quantity: p.quantity,
-          amount: p.amount,
-        },
-        certificateGenerated: Boolean(p.certificateGenerated),
-        certificateId: p.certificateId,
-        emailSent: Boolean(p.emailSent),
-        emailStatus: p.emailStatus || 'pending',
-        createdAt: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      }));
+      const mapped: Participant[] = (Array.isArray(data) ? data : []).map((p: BackendParticipant) => {
+        const eventId = typeof p.event === 'string' ? p.event : p.event?._id || '';
+
+        // Determine certificate info from the new certificates array shape
+        const certificatesArr: any[] = Array.isArray((p as any).certificates) ? (p as any).certificates : [];
+        const certEntry = certificatesArr.find((entry: any) => {
+          if (!entry) return false;
+          // New shape: { certificateId, eventId }
+          const entryEventId = entry.eventId?._id || entry.eventId || entry.event;
+          if (entryEventId) return String(entryEventId) === String(eventId);
+          return false;
+        });
+
+        const certificateGenerated = Boolean(certEntry);
+        const certificateId = certEntry ? (certEntry.certificateId || certEntry._id || (typeof certEntry === 'string' ? certEntry : undefined)) : undefined;
+
+        return {
+          id: p._id || p.id || '',
+          eventId: eventId,
+          name: p.name || p.fullName || '',
+          email: (p.email || '').toLowerCase(),
+          additionalData: {
+            phone: p.phone,
+            ticketName: p.ticketName || p.ticket?.name,
+            ticketPrice: p.ticketPrice ?? p.ticket?.price,
+            quantity: p.quantity,
+            amount: p.amount,
+          },
+          certificateGenerated,
+          certificateId,
+          emailSent: Boolean(p.emailSent),
+          emailStatus: p.emailStatus || 'pending',
+          createdAt: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        };
+      });
       
       setParticipantsByEvent(prev => ({ ...prev, [eventId]: mapped }));
-      console.log(`Loaded ${mapped.length} participants for event ${eventId}`);
+     
     } catch (e) {
       console.error('Error loading participants:', e);
       setParticipantsByEvent(prev => ({ ...prev, [eventId]: prev[eventId] || [] }));
@@ -146,7 +163,16 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
         data.forEach((p: BackendParticipant) => {
           const eventId = typeof p.event === 'string' ? p.event : p.event?._id || '';
           if (!eventId) return;
-          
+
+          // derive certificate info from new certificates field
+          const certificatesArr: any[] = Array.isArray((p as any).certificates) ? (p as any).certificates : [];
+          const certEntry = certificatesArr.find((entry: any) => {
+            if (!entry) return false;
+            const entryEventId = entry.eventId?._id || entry.eventId || entry.event;
+            if (entryEventId) return String(entryEventId) === String(eventId);
+            return false;
+          });
+
           const participant: Participant = {
             id: p._id || p.id || '',
             eventId,
@@ -159,13 +185,13 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
               quantity: p.quantity,
               amount: p.amount,
             },
-            certificateGenerated: Boolean(p.certificateGenerated),
-            certificateId: p.certificateId,
+            certificateGenerated: Boolean(certEntry),
+            certificateId: certEntry ? (certEntry.certificateId || certEntry._id || (typeof certEntry === 'string' ? certEntry : undefined)) : undefined,
             emailSent: Boolean(p.emailSent),
             emailStatus: p.emailStatus || 'pending',
             createdAt: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           };
-          
+
           if (!participantsByEventMap[eventId]) {
             participantsByEventMap[eventId] = [];
           }
@@ -262,45 +288,25 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   }, []);
 
-  const generateCertificate = useCallback(async (participantId: string, eventId: string) => {
-    try {
-      const certificateId = `CERT-${Date.now()}`;
-      
-      // Make an API call to backend to generate certificate
-      // You can uncomment and modify this when you have the proper backend endpoint
-      /*
-      const response = await axios.post(`${API_BASE}/certificates/generate`, {
-        participantId,
-        eventId
-      });
-      const generatedId = response.data.certificateId;
-      */
-      
-      // For now, just update local state
-      updateParticipant(participantId, {
-        certificateGenerated: true,
-        certificateId
-      }, eventId);
-      
-      return certificateId;
-    } catch (error) {
-      console.error('Failed to generate certificate:', error);
-      return null;
-    }
+  // This method replaces the previous generateCertificate method
+  // It only updates the local state without making any API calls
+  const updateParticipantCertificateStatus = useCallback((
+    participantId: string, 
+    eventId: string,
+    certificateId: string
+  ) => {
+    updateParticipant(participantId, {
+      certificateGenerated: true,
+      certificateId
+    }, eventId);
   }, [updateParticipant]);
 
   const sendEmail = useCallback(async (participantId: string, eventId: string) => {
     try {
-      // Make an API call to send email
-      // You can uncomment and modify this when you have the proper backend endpoint
-      /*
-      const response = await axios.post(`${API_BASE}/emails/send`, {
-        participantId,
-        eventId
+      const res = await axios.post(`${API_BASE}/api/mail`, {
+        email: participantId
       });
-      const success = response.data.success;
-      */
-      
+
       // For now, just update local state
       updateParticipant(participantId, {
         emailSent: true,
@@ -356,7 +362,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     importParticipants,
     updateParticipant,
     deleteParticipant,
-    generateCertificate,
+    updateParticipantCertificateStatus,
     sendEmail,
     refreshAllParticipants
   }), [
@@ -369,7 +375,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     importParticipants,
     updateParticipant,
     deleteParticipant,
-    generateCertificate,
+    updateParticipantCertificateStatus,
     sendEmail,
     refreshAllParticipants
   ]);

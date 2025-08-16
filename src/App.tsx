@@ -93,7 +93,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <EventProvider>          <TemplateProvider>
+        <EventProvider>
+          <TemplateProvider>
             <ParticipantProvider>
               <CertificateProvider>
                 <Routes>
