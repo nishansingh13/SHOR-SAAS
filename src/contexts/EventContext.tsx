@@ -21,6 +21,11 @@ export interface Event {
   ticket?: Array<{ name: string; price: number; _id?: string }>;
 }
 
+interface EmailTemplate {
+  subject: string;
+  content: string;
+}
+
 interface EventContextType {
   events: Event[];
   selectedEvent: Event | null;
@@ -30,6 +35,8 @@ interface EventContextType {
   selectEvent: (event: Event | null) => void;
   refreshEvents: () => Promise<void>;
   getRawEventById: (id: string) => BackendEvent | undefined;
+  emailTemplate: EmailTemplate;
+  setEmailTemplate: (template: EmailTemplate) => void;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
@@ -88,7 +95,24 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [rawEventsMap, setRawEventsMap] = useState<Record<string, BackendEvent>>({});
-
+  const [emailTemplate, setEmailTemplate] = useState({
+      subject: 'Your Certificate for {{ event_name }}',
+      content: `Dear {{ participant_name }},
+  
+  Congratulations on successfully completing {{ event_name }}!
+  
+  Please find your certificate of completion attached to this email. This certificate validates your participation and successful completion of the program.
+  
+  Event Details:
+  - Event: {{ event_name }}
+  - Date: {{ event_date }}
+  - Certificate ID: {{ certificate_id }}
+  
+  Thank you for your participation!
+  
+  Best regards,
+  {{ organizer_name }}`
+    });
   const refreshEvents = async () => {
     try {
       const response = await axios.get(`${API_BASE}/events`);
@@ -195,6 +219,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       selectEvent,
       refreshEvents,
       getRawEventById,
+      emailTemplate,
+      setEmailTemplate: (template: EmailTemplate) => setEmailTemplate(template),
     }}>
       {children}
     </EventContext.Provider>

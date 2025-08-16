@@ -1,15 +1,27 @@
 import axios from 'axios';
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 
-// Minimal Certificate interface (frontend-only)
 export interface Certificate {
   id?: string;
   participantId: string;
   eventId: string;
   certificateNumber: string;
   generatedAt: string;
+  emailSent?: boolean;
 }
+
+interface CertificateResponse {
+  _id?: string;
+  id?: string;
+  participantId: string;
+  eventId: string;
+  certificateNumber: string;
+  generatedAt: string;
+  emailSent?: boolean;
+}
+
 const server = "http://localhost:3000/api";
+
 interface CertificateContextType {
   certificates: Certificate[];
   loadCertificates: (eventId?: string) => Promise<void>;
@@ -17,7 +29,6 @@ interface CertificateContextType {
   downloadCertificate: (certificateId: string, format: 'pdf' | 'jpg') => Promise<string | null>;
   sendEmail: (certificateId: string, email: string) => Promise<boolean>;
   verifyCertificate: (certificateNumber: string) => Promise<Certificate | null>;
-  certificateExists?:(certificateNumber:string) => Promise<boolean>;
 }
 
 const CertificateContext = createContext<CertificateContextType | undefined>(undefined);
@@ -28,137 +39,120 @@ export const useCertificates = () => {
   return context;
 };
 
-export const CertificateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Frontend-only, in-memory certificates. You will implement persistence/backend later.
+export const CertificateProvider = ({ children }: { children: React.ReactNode }) => {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
 
-  // Load certificates from backend (by event or all)
-  const loadCertificates = async (_eventId?: string) => {
+  const loadCertificates = useCallback(async (_eventId?: string) => {
     try {
       const res = _eventId
         ? await axios.get(`${server}/certificates/event/${_eventId}`)
         : await axios.get(`${server}/certificates`);
 
-      const data = res.data;
+      const data: CertificateResponse[] = res.data;
       if (!Array.isArray(data)) return;
 
-      const mapped: Certificate[] = data.map((c: any) => ({
+      const mapped: Certificate[] = data.map((c) => ({
         id: c._id || c.id,
         participantId: c.participantId,
         eventId: c.eventId,
         certificateNumber: c.certificateNumber || '',
-        generatedAt: c.generatedAt || new Date().toISOString()
+        generatedAt: c.generatedAt || new Date().toISOString(),
+        emailSent: c.emailSent
       }));
 
       setCertificates(mapped);
-    } catch (err) {
-      console.error('Failed to load certificates:', err);
+    } catch (error) {
+      console.error('Failed to load certificates:', error);
     }
-  };
+  }, []);
 
-  const certificateExists = async (certificatenumber: string) => {
+  const fillCertificateInfo = useCallback(async (certificateId: string) => {
     try {
-      const res = await axios.get(`${server}/certificates/verify/${certificatenumber}`);
-      return res.status === 200 && res.data?.success === true;
-    } catch (err) {
+      const res = await axios.put(`${server}/participants/certificate`, { certificateId });
+      return res.status === 200;
+    } catch (error) {
+      console.error('Error updating participant certificate:', error);
       return false;
     }
-  };
+  }, []);
 
-  const fillCertificateInfo = async (certificateId: string, eventId: string) => {
-    // Call backend to link certificate to participant
-    const res = await axios.put(`${server}/participants/certificate`, {
-      certificateId: certificateId
-    });
-    if (res.status === 200) {
-      // refresh certificates for the event to reflect new linkage
-      await loadCertificates(eventId);
-      return true;
-    }
-    return false;
-  };
-
-  const generateCertificate = async (_participantId: string, _eventId: string) => {
+  const generateCertificate = useCallback(async (participantId: string, eventId: string) => {
     try {
-      const res = await axios.post(`${server}/certificates/generate`, {
-        participantId: _participantId,
-        eventId: _eventId
-      });
+      const res = await axios.post(`${server}/certificates/generate`, { participantId, eventId });
 
       if (res.status === 201) {
-        const certData = res.data.certificate;
-        const mongoId = certData._id || certData.id || null;
+        const certData: CertificateResponse = res.data.certificate;
+        const mongoId = certData._id || certData.id || undefined;
 
         const newCertificate: Certificate = {
-          id: mongoId || undefined,
+          id: mongoId,
           participantId: certData.participantId,
           eventId: certData.eventId,
           certificateNumber: certData.certificateNumber || '',
           generatedAt: certData.generatedAt || new Date().toISOString(),
+          emailSent: certData.emailSent
         };
 
-        if (mongoId) {
-          await fillCertificateInfo(mongoId, _eventId);
-        }
+        if (mongoId) await fillCertificateInfo(mongoId);
 
-        // update local state and reload event certificates
-        setCertificates(prev => {
-          // de-dupe by id
-          const without = prev.filter(c => c.id !== newCertificate.id);
+        setCertificates((prev) => {
+          const without = prev.filter((c) => c.id !== newCertificate.id);
           return [...without, newCertificate];
         });
-        await loadCertificates(_eventId);
+
         alert('Certificate generated successfully');
         return newCertificate;
       } else {
         console.error(res.status);
         return null;
       }
-    } catch (err) {
-      console.error('Error here: ', err);
+    } catch (error) {
+      console.error('Error generating certificate:', error);
       return null;
     }
-  };
+  }, [fillCertificateInfo]);
 
-  const downloadCertificate = async (_certificateId: string, _format: 'pdf' | 'jpg') => {
+  const downloadCertificate = useCallback(async (certificateId: string, format: 'pdf' | 'jpg') => {
     try {
-      const res = await axios.get(`${server}/certificates/${_certificateId}/download?format=${_format}`);
+      const res = await axios.get(`${server}/certificates/${certificateId}/download?format=${format}`);
       if (res.status === 200) {
-        // backend currently returns a placeholder; in real impl this would return a file/url
         alert(res.data?.message || 'Download initiated');
         return res.data?.downloadUrl || null;
       }
       return null;
-    } catch (err) {
-      console.error('Failed to download certificate:', err);
+    } catch (error) {
+      console.error('Failed to download certificate:', error);
       return null;
     }
-  };
+  }, []);
 
-  const sendEmail = async (_certificateId: string, _email: string) => {
+  const sendEmail = useCallback(async (certificateId: string, email: string) => {
     try {
-      const res = await axios.post(`${server}/certificates/${_certificateId}/send-email`, { email: _email });
+      const res = await axios.post(`${server}/certificates/${certificateId}/send-email`, { email });
       if (res.status === 200) {
-        // refresh certificates list to reflect emailSent status if stored on cert
-        await loadCertificates();
+        setCertificates((prev) =>
+          prev.map((cert) =>
+            cert.id === certificateId ? { ...cert, emailSent: true } : cert
+          )
+        );
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Failed to send certificate email:', err);
+    } catch (error) {
+      console.error('Failed to send certificate email:', error);
       return false;
     }
-  };
+  }, []);
 
-  const verifyCertificate = async (_certificateNumber: string) => {
+  const verifyCertificate = useCallback(async (certificateNumber: string) => {
     try {
-      const res = await axios.get(`${server}/certificates/verify/${_certificateNumber}`);
+      const res = await axios.get(`${server}/certificates/verify/${certificateNumber}`);
       if (res.status === 200) return res.data.certificate || null;
       return null;
     } catch (err) {
       return null;
     }
-  };
+  }, []);
 
   const value = useMemo(() => ({
     certificates,
@@ -167,7 +161,7 @@ export const CertificateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     downloadCertificate,
     sendEmail,
     verifyCertificate
-  }), [certificates, loadCertificates, generateCertificate]);
+  }), [certificates, loadCertificates, generateCertificate, downloadCertificate, sendEmail, verifyCertificate]);
 
   return (
     <CertificateContext.Provider value={value}>

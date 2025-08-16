@@ -17,6 +17,8 @@ import EmailDistribution from './components/Email/EmailDistribution';
 import Reports from './components/Reports/Reports';
 import ParticipantPortal from './components/Participants/ParticipantPortal';
 import CertificateGeneration from './components/Certificates/CertificateGeneration';
+// import { Merge } from 'lucide-react';
+import Merged from './components/Merged/Merged';
 
 // Type defining all valid routes in the app
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
@@ -81,6 +83,7 @@ const AdminLayout = () => {
               <Route path="/certificates" element={<CertificateGeneration />} />
               <Route path="/email" element={<EmailDistribution />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path = "/merge" element={<Merged/>}/>
             </Routes>
           </div>
         </main>
@@ -103,9 +106,9 @@ function App() {
                   <Route 
                     path="/*" 
                     element={
-                      <ProtectedRoute>
+                    
                         <AdminLayout />
-                      </ProtectedRoute>
+                    
                     } 
                   />
                 </Routes>

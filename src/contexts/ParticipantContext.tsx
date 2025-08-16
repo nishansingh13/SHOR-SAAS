@@ -76,7 +76,7 @@ interface ParticipantContextType {
   updateParticipant: (id: string, data: Partial<Participant>, eventId: string) => void;
   deleteParticipant: (id: string, eventId: string) => void;
   updateParticipantCertificateStatus: (participantId: string, eventId: string, certificateId: string) => void; // New method
-  sendEmail: (participantId: string, eventId: string) => Promise<boolean>;
+  sendEmail: (participantId: string, eventId: string, emailData: { subject: string; content: string }) => Promise<boolean>;
   refreshAllParticipants: () => Promise<void>; // New method to refresh all loaded events
 }
 
@@ -301,27 +301,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, eventId);
   }, [updateParticipant]);
 
-  const sendEmail = useCallback(async (participantId: string, eventId: string) => {
-    try {
-      const res = await axios.post(`${API_BASE}/api/mail`, {
-        email: participantId
-      });
 
-      // For now, just update local state
-      updateParticipant(participantId, {
-        emailSent: true,
-        emailStatus: 'sent'
-      }, eventId);
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to send email:', error);
-      updateParticipant(participantId, {
-        emailStatus: 'failed'
-      }, eventId);
-      return false;
-    }
-  }, [updateParticipant]);
 
   const registerParticipant = useCallback(async (data: ParticipantRegistrationData) => {
     try {
@@ -350,6 +330,67 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [loadParticipants]);
 
   const allParticipants: Participant[] = Object.values(participantsByEvent).flat();
+   const getEmailById = useCallback(async (participantId: string): Promise<string> => {
+  const res = await axios.get(`${API_BASE}/participants/getById/${participantId}`);
+  return res.data.email || '';
+}, []);
+
+
+  const sendEmail = useCallback(async (participantId: string, eventId: string, emailData: { subject: string; content: string; certificatePDF?: string }) => {
+    try {
+      // Get email first
+      const recipientEmail = await getEmailById(participantId);
+      if (!recipientEmail) {
+        throw new Error('Could not find participant email');
+      }
+
+      console.log('Sending email with data:', {
+        to: recipientEmail,
+        subject: emailData.subject,
+        hasAttachment: !!emailData.certificatePDF
+      });
+
+      const res = await axios.post(`${API_BASE}/mail`, {
+        email: recipientEmail,
+        ...emailData,
+        attachments: emailData.certificatePDF ? [{
+          filename: 'certificate.pdf',
+          content: emailData.certificatePDF,
+          encoding: 'base64'
+        }] : undefined
+      });
+
+      if (res.status !== 200) {
+        throw new Error(`Server returned status ${res.status}: ${res.data}`);
+      }
+
+      console.log('Email sent successfully:', res.data);
+
+      // Update local state
+      updateParticipant(participantId, {
+        emailSent: true,
+        emailStatus: 'sent'
+      }, eventId);
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || error.message;
+      }
+      
+      updateParticipant(participantId, {
+        emailStatus: 'failed'
+      }, eventId);
+      
+      // Rethrow with better error message
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }, [updateParticipant]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = React.useMemo(() => ({

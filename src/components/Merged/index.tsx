@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEvents } from '../../contexts/EventContext';
 import { useParticipants, type Participant } from '../../contexts/ParticipantContext';
 import { useTemplates } from '../../contexts/TemplateContext';
@@ -11,9 +11,10 @@ import {
   Eye, 
   Play,
   FileText,
-  Image,
+  Image as ImageIcon,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from 'lucide-react';
 
 type ImagePlaceholder = {
@@ -28,7 +29,9 @@ type PreviewContent =
   | { type: 'image'; backgroundImage?: string; placeholders: ImagePlaceholder[] }
   | string;
 
-const CertificateGeneration: React.FC = () => {
+type TabType = 'generate' | 'email';
+
+const Merged: React.FC = () => {
   const { events } = useEvents();
   const { getParticipantsByEvent, loadParticipants, updateParticipantCertificateStatus } = useParticipants();
   const { templates } = useTemplates();
@@ -39,46 +42,41 @@ const CertificateGeneration: React.FC = () => {
     loadCertificates, 
     certificates 
   } = useCertificates();
-  
-  // This is a temporary bridge until we fully refactor to use only CertificateContext
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).updateParticipantCertificateStatus = updateParticipantCertificateStatus;
-    return () => {
-      // Clean up when component unmounts
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).updateParticipantCertificateStatus;
-    };
-  }, [updateParticipantCertificateStatus]);
+
+  const [activeTab, setActiveTab] = useState<TabType>('generate');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [previewParticipant, setPreviewParticipant] = useState<Participant | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   const eventParticipants = selectedEventId ? getParticipantsByEvent(selectedEventId) : [];
-
   const eventCertificates = selectedEventId ? certificates.filter(c => String(c.eventId) === String(selectedEventId)) : [];
 
+  // Load data effects
   useEffect(() => {
     if (selectedEventId) {
       loadParticipants(selectedEventId);
-      // Load certificates for this event
       loadCertificates(selectedEventId);
     }
   }, [selectedEventId, loadParticipants, loadCertificates]);
-  
-  // Load participants for all events when component mounts
+
   useEffect(() => {
-    // Load participants for all events to get accurate counts
     events.forEach(event => {
       loadParticipants(event.id);
     });
-    // Load all certificates
     loadCertificates();
   }, [events, loadParticipants, loadCertificates]);
 
+  // Counts for stats
+  const pendingCount = eventParticipants.filter(p => !p.certificateGenerated).length;
+  const generatedCount = eventParticipants.filter(p => p.certificateGenerated).length;
+  const emailedCount = eventParticipants.filter(p => p.certificateGenerated && p.emailSent).length;
+  const readyToEmailCount = eventParticipants.filter(p => p.certificateGenerated && !p.emailSent).length;
+
+  // Preview handling
   const handlePreview = (participant: Participant) => {
     if (!selectedTemplate) return;
     setPreviewParticipant(participant);
@@ -90,7 +88,6 @@ const CertificateGeneration: React.FC = () => {
     const event = events.find(e => e.id === participant.eventId);
     
     if (selectedTemplate.type === 'image') {
-      // For image templates, return the structured data
       const templateData = JSON.parse(selectedTemplate.content || '{}');
       return {
         type: 'image',
@@ -108,7 +105,6 @@ const CertificateGeneration: React.FC = () => {
         })) || []
       };
     } else {
-      // For HTML templates, return the processed HTML
       return selectedTemplate.content
         .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
         .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
@@ -118,24 +114,51 @@ const CertificateGeneration: React.FC = () => {
     }
   };
 
+  // Certificate generation
+  const generatePDFFromPreview = async (contentElement: HTMLElement, participant: Participant): Promise<Blob> => {
+    try {
+      const canvas = await html2canvas(contentElement, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.setProperties({
+        title: `Certificate - ${participant.name}`,
+        subject: 'Certificate of Completion',
+        author: selectedEvent?.organizer || 'Organization',
+        keywords: 'certificate, completion',
+        creator: 'Certificate Generation System'
+      });
+
+      return pdf.output('blob');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      throw error;
+    }
+  };
+
   const handleBulkGenerate = async () => {
     if (!selectedEventId || !selectedTemplateId) return;
     
     setGenerating(true);
     
-    // Generate certificates using the certificate context
     for (let i = 0; i < eventParticipants.length; i++) {
       const participant = eventParticipants[i];
       if (!participant.certificateGenerated) {
         try {
-          // Use the certificate context to generate certificates
           const certificate = await generateCertificate(participant.id, selectedEventId);
           if (certificate) {
-            // Update the participant status
             const participantId = participant.id;
-        
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (window as any).updateParticipantCertificateStatus?.(participantId, selectedEventId, certificate.id);
+            await updateParticipantCertificateStatus(participantId, selectedEventId, certificate.id);
           }
         } catch (error) {
           console.error(`Failed to generate certificate for ${participant.name}:`, error);
@@ -143,22 +166,35 @@ const CertificateGeneration: React.FC = () => {
       }
     }
     
-    // Reload certificates to refresh the list
     await loadCertificates(selectedEventId);
-    
     setGenerating(false);
+  };
+
+  const handleBulkEmail = async () => {
+    if (!selectedEventId) return;
+    
+    setSending(true);
+    const readyParticipants = eventParticipants.filter(p => p.certificateGenerated && !p.emailSent);
+    
+    for (const participant of readyParticipants) {
+      if (!participant.certificateId) continue;
+      try {
+        await sendEmail(participant.certificateId, participant.email);
+      } catch (error) {
+        console.error(`Failed to send email to ${participant.email}:`, error);
+      }
+    }
+    
+    setSending(false);
   };
 
   const handleDownloadCertificate = async (participant: Participant, format: 'pdf' | 'jpg') => {
     try {
-      // First show preview if not already showing
       if (!previewParticipant) {
         handlePreview(participant);
-        // Wait for preview to render
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Get the preview content element
       const certificateElement = document.querySelector('#certificate-wrapper .certificate-preview-content') as HTMLElement;
       if (!certificateElement) {
         throw new Error('Certificate preview element not found');
@@ -175,7 +211,6 @@ const CertificateGeneration: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       } else {
-        // For JPG format
         const canvas = await html2canvas(certificateElement, {
           scale: 2,
           logging: false,
@@ -193,40 +228,6 @@ const CertificateGeneration: React.FC = () => {
       }
     } catch (error) {
       console.error(`Failed to generate ${format} for ${participant.name}:`, error);
-    }
-  };
-
-  const generatePDFFromPreview = async (contentElement: HTMLElement, participant: Participant): Promise<Blob> => {
-    try {
-      const canvas = await html2canvas(contentElement, {
-        scale: 2, // Higher scale for better quality
-        logging: false,
-        useCORS: true, // Enable CORS for images
-        backgroundColor: '#ffffff'
-      });
-
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-
-      // Add metadata
-      pdf.setProperties({
-        title: `Certificate - ${participant.name}`,
-        subject: 'Certificate of Completion',
-        author: selectedEvent?.organizer || 'Organization',
-        keywords: 'certificate, completion',
-        creator: 'Certificate Generation System'
-      });
-
-      return pdf.output('blob');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      throw error;
     }
   };
 
@@ -249,18 +250,32 @@ const CertificateGeneration: React.FC = () => {
     }
   };
 
-
-
-  const pendingCount = eventParticipants.filter(p => !p.certificateGenerated).length;
-  const generatedCount = eventParticipants.filter(p => p.certificateGenerated).length;
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Certificate Generation</h1>
-          <p className="text-gray-600">Generate and download certificates for event participants</p>
+      {/* Header with Tabs */}
+      <div className="flex flex-col space-y-4">
+        <h1 className="text-2xl font-bold text-gray-900">Certificate Management</h1>
+        <div className="flex space-x-4 border-b border-gray-200">
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'generate'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('generate')}
+          >
+            Generate Certificates
+          </button>
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'email'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('email')}
+          >
+            Email Distribution
+          </button>
         </div>
       </div>
 
@@ -289,57 +304,81 @@ const CertificateGeneration: React.FC = () => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Template
-            </label>
-            <select
-              value={selectedTemplateId}
-              onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Choose a template</option>
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name} ({template.type})
-                </option>
-              ))}
-            </select>
-          </div>
+          {activeTab === 'generate' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Template
+              </label>
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Choose a template</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} ({template.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {selectedEventId && selectedTemplateId && (
+        {selectedEventId && (
           <div className="mt-6 flex items-center justify-between p-4 bg-blue-50 rounded-lg">
             <div className="flex items-center">
               <CheckCircle className="h-5 w-5 text-blue-600 mr-2" />
               <span className="text-sm font-medium text-blue-900">
-                Ready to generate {pendingCount} certificates for {selectedEvent?.name}
+                {activeTab === 'generate' 
+                  ? `Ready to generate ${pendingCount} certificates for ${selectedEvent?.name}`
+                  : `Ready to email ${readyToEmailCount} certificates for ${selectedEvent?.name}`}
               </span>
             </div>
-            <button
-              onClick={handleBulkGenerate}
-              disabled={generating || pendingCount === 0}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              {generating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Generate All Certificates
-                </>
-              )}
-            </button>
+            {activeTab === 'generate' ? (
+              <button
+                onClick={handleBulkGenerate}
+                disabled={generating || pendingCount === 0}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {generating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Generate All Certificates
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleBulkEmail}
+                disabled={sending || readyToEmailCount === 0}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {sending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send All Emails
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {/* Stats */}
       {selectedEventId && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -360,6 +399,18 @@ const CertificateGeneration: React.FC = () => {
               </div>
               <div className="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Emailed</p>
+                <p className="text-2xl font-bold text-blue-600">{emailedCount}</p>
+              </div>
+              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Mail className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -415,10 +466,17 @@ const CertificateGeneration: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {participant.certificateGenerated ? (
-                        <div className="flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          <span className="text-sm text-green-700">Generated</span>
-                        </div>
+                        participant.emailSent ? (
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 text-blue-500 mr-2" />
+                            <span className="text-sm text-blue-700">Emailed</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                            <span className="text-sm text-green-700">Generated</span>
+                          </div>
+                        )
                       ) : (
                         <div className="flex items-center">
                           <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />
@@ -428,7 +486,6 @@ const CertificateGeneration: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-500">
-                        {/* show certificate number if available, fallback to id */}
                         {(() => {
                           if (!participant.certificateId) return '-';
                           const cert = certificates.find(c => c.id === participant.certificateId);
@@ -438,7 +495,7 @@ const CertificateGeneration: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        {selectedTemplateId && (
+                        {activeTab === 'generate' && selectedTemplateId && (
                           <button
                             onClick={() => handlePreview(participant)}
                             className="text-blue-600 hover:text-blue-900 flex items-center"
@@ -462,55 +519,36 @@ const CertificateGeneration: React.FC = () => {
                               className="text-purple-600 hover:text-purple-900 flex items-center"
                               title="Download as JPG"
                             >
-                              <Image className="h-4 w-4 mr-1" />
+                              <ImageIcon className="h-4 w-4 mr-1" />
                               JPG
                             </button>
-                            <button
-                              onClick={() => handleSendEmail(participant)}
-                              className="text-blue-600 hover:text-blue-900 flex items-center"
-                              title={`Send certificate to ${participant.email}`}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                              </svg>
-                              Email
-                            </button>
+                            {!participant.emailSent && (
+                              <button
+                                onClick={() => handleSendEmail(participant)}
+                                className="text-blue-600 hover:text-blue-900 flex items-center"
+                                title={`Send certificate to ${participant.email}`}
+                              >
+                                <Mail className="h-4 w-4 mr-1" />
+                                Email
+                              </button>
+                            )}
                           </>
                         )}
-                        {!participant.certificateGenerated && (
+                        {!participant.certificateGenerated && activeTab === 'generate' && (
                           <button
-                            onClick={()=>generateCertificate(participant.id, selectedEventId)}
+                            onClick={() => generateCertificate(participant.id, selectedEventId)}
                             className="text-orange-600 hover:text-orange-900 flex items-center"
                           >
                             <Award className="h-4 w-4 mr-1" />
-                            Generates
+                            Generate
                           </button>
                         )}
-
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Certificates for this event */}
-      {selectedEventId && eventCertificates.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Certificates for {selectedEvent?.name}</h3>
-          <div className="space-y-2">
-            {eventCertificates.map((c) => {
-              const owner = eventParticipants.find(p => p.id === (c.participantId || ''))?.name || 'Unknown participant';
-              return (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-md border border-gray-100">
-                  <div className="text-sm text-gray-700">{c.certificateNumber || c.id}</div>
-                  <div className="text-sm text-gray-500">for: {owner}</div>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
@@ -615,4 +653,4 @@ const CertificateGeneration: React.FC = () => {
   );
 };
 
-export default CertificateGeneration;
+export default Merged;

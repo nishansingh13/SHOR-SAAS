@@ -73,3 +73,17 @@ export const getAllParticipants = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getParticipantById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const participant = await ParticipantModel.findById(id);
+    if (!participant) {
+      return res.status(404).json({ error: 'Participant not found' });
+    }
+    return res.json(participant);
+  } catch (err) {
+    console.error('getParticipantById error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};

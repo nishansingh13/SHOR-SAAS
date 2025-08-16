@@ -2,41 +2,27 @@ import React, { useState } from 'react';
 import { useEvents } from '../../contexts/EventContext';
 import { useParticipants } from '../../contexts/ParticipantContext';
 import { 
-  Mail, 
   Send, 
-  Settings, 
   CheckCircle, 
   AlertTriangle,
-  Clock,
-  Eye,
-  X
+  Settings,
 } from 'lucide-react';
 
+interface Participant {
+  id: string;
+  name: string;
+  email: string;  
+  certificateGenerated?: boolean;
+  emailSent?: boolean;
+  certificateId?: string;
+}
+
 const EmailDistribution: React.FC = () => {
-  const { events } = useEvents();
-  const { participants, getParticipantsByEvent, sendEmail } = useParticipants();
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const { events, emailTemplate, setEmailTemplate } = useEvents();
+  const { getParticipantsByEvent, sendEmail } = useParticipants();
   const [showSettings, setShowSettings] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [sending, setSending] = useState(false);
-  const [emailTemplate, setEmailTemplate] = useState({
-    subject: 'Your Certificate for {{ event_name }}',
-    content: `Dear {{ participant_name }},
-
-Congratulations on successfully completing {{ event_name }}!
-
-Please find your certificate of completion attached to this email. This certificate validates your participation and successful completion of the program.
-
-Event Details:
-- Event: {{ event_name }}
-- Date: {{ event_date }}
-- Certificate ID: {{ certificate_id }}
-
-Thank you for your participation!
-
-Best regards,
-{{ organizer_name }}`
-  });
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const eventParticipants = selectedEventId ? getParticipantsByEvent(selectedEventId) : [];
@@ -44,34 +30,35 @@ Best regards,
   const alreadySent = eventParticipants.filter(p => p.emailSent);
   const pending = eventParticipants.filter(p => !p.certificateGenerated);
 
+  const processTemplate = (participant: Participant) => {
+    return {
+      subject: emailTemplate.subject
+        .replace(/\{\{\s*event_name\s*\}\}/g, selectedEvent?.name || '')
+        .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name),
+      content: emailTemplate.content
+        .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
+        .replace(/\{\{\s*event_name\s*\}\}/g, selectedEvent?.name || '')
+        .replace(/\{\{\s*event_date\s*\}\}/g, selectedEvent?.date ? new Date(selectedEvent.date).toLocaleDateString() : '')
+        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || '')
+        .replace(/\{\{\s*organizer_name\s*\}\}/g, selectedEvent?.organizer || '')
+    };
+  };
+
   const handleBulkSend = async () => {
     if (readyToSend.length === 0) return;
     
     setSending(true);
     
-    // Simulate sending emails
-    for (let i = 0; i < readyToSend.length; i++) {
-      const participant = readyToSend[i];
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      sendEmail(participant.id);
+    try {
+      // Send emails in sequence
+      for (const participant of readyToSend) {
+         await sendEmail(participant.id,participant.email,processTemplate(participant));
+      }
+    } catch (error) {
+      console.error('Error sending emails:', error);
+    } finally {
+      setSending(false);
     }
-    
-    setSending(false);
-  };
-
-  const generatePreviewContent = (participant: any) => {
-    const event = events.find(e => e.id === participant.eventId);
-    return {
-      subject: emailTemplate.subject
-        .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
-        .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name),
-      content: emailTemplate.content
-        .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
-        .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
-        .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
-        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || '')
-        .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '')
-    };
   };
 
   return (
@@ -82,24 +69,77 @@ Best regards,
           <h1 className="text-2xl font-bold text-gray-900">Email Distribution</h1>
           <p className="text-gray-600">Send certificates to participants via email</p>
         </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Email Settings
-          </button>
-          <button
-            onClick={() => setShowPreview(true)}
-            disabled={!selectedEventId}
-            className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors duration-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Preview
-          </button>
-        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Email Settings
+        </button>
       </div>
+
+      {/* Email Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Email Settings</h2>
+              <p className="text-sm text-gray-600 mt-1">Configure the email template for certificate distribution</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Subject
+                </label>
+                <input
+                  type="text"
+                  value={emailTemplate.subject}
+                  onChange={(e) => setEmailTemplate({ ...emailTemplate, subject: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Subject line with placeholders"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Content
+                </label>
+                <textarea
+                  value={emailTemplate.content}
+                  onChange={(e) => setEmailTemplate({ ...emailTemplate, content: e.target.value })}
+                  rows={12}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Email content with placeholders"
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Available Placeholders:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['participant_name', 'event_name', 'event_date', 'certificate_id', 'organizer_name'].map((placeholder) => (
+                    <code
+                      key={placeholder}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                    >
+                      {`{{ ${placeholder} }}`}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Event Selection */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -120,15 +160,12 @@ Best regards,
 
       {/* Stats */}
       {selectedEventId && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Ready to Send</p>
                 <p className="text-2xl font-bold text-emerald-600">{readyToSend.length}</p>
-              </div>
-              <div className="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <Mail className="h-6 w-6 text-emerald-600" />
               </div>
             </div>
           </div>
@@ -139,36 +176,14 @@ Best regards,
                 <p className="text-sm font-medium text-gray-600">Already Sent</p>
                 <p className="text-2xl font-bold text-blue-600">{alreadySent.length}</p>
               </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-blue-600" />
-              </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Certificates</p>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
                 <p className="text-2xl font-bold text-orange-600">{pending.length}</p>
-              </div>
-              <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Clock className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Success Rate</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {eventParticipants.length > 0 
-                    ? Math.round((alreadySent.length / eventParticipants.length) * 100)
-                    : 0}%
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -186,7 +201,7 @@ Best regards,
             <button
               onClick={handleBulkSend}
               disabled={sending}
-              className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-emerald-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {sending ? (
                 <>
@@ -253,20 +268,21 @@ Best regards,
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`
-                        inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${participant.emailStatus === 'sent' ? 'bg-green-100 text-green-800' : ''}
-                        ${participant.emailStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        ${participant.emailStatus === 'failed' ? 'bg-red-100 text-red-800' : ''}
-                      `}>
-                        {participant.emailStatus}
-                      </span>
+                      {participant.emailSent ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Sent
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Pending
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         {participant.certificateGenerated && !participant.emailSent && (
                           <button
-                            onClick={() => sendEmail(participant.id)}
+                            onClick={() => sendEmail(participant.id, participant.email, processTemplate(participant))}
                             className="text-emerald-600 hover:text-emerald-900 flex items-center"
                           >
                             <Send className="h-4 w-4 mr-1" />
@@ -275,139 +291,19 @@ Best regards,
                         )}
                         {participant.emailSent && (
                           <button
-                            onClick={() => sendEmail(participant.id)}
+                            onClick={() => sendEmail(participant.id, participant.email, processTemplate(participant))}
                             className="text-blue-600 hover:text-blue-900 flex items-center"
                           >
                             <Send className="h-4 w-4 mr-1" />
                             Resend
                           </button>
                         )}
-                        <button className="text-gray-600 hover:text-gray-900">
-                          View History
-                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Email Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">Email Settings</h2>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Subject
-                </label>
-                <input
-                  type="text"
-                  value={emailTemplate.subject}
-                  onChange={(e) => setEmailTemplate({ ...emailTemplate, subject: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Content
-                </label>
-                <textarea
-                  value={emailTemplate.content}
-                  onChange={(e) => setEmailTemplate({ ...emailTemplate, content: e.target.value })}
-                  rows={12}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Available Placeholders:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {['participant_name', 'event_name', 'event_date', 'certificate_id', 'organizer_name'].map((placeholder) => (
-                    <code
-                      key={placeholder}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                    >
-                      {`{{ ${placeholder} }}`}
-                    </code>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowSettings(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-              >
-                Save Settings
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {showPreview && selectedEventId && eventParticipants.length > 0 && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">Email Preview</h2>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 100px)' }}>
-              {(() => {
-                const sampleParticipant = eventParticipants[0];
-                const preview = generatePreviewContent(sampleParticipant);
-                return (
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <div className="bg-white rounded-lg p-6 shadow-sm">
-                      <div className="border-b border-gray-200 pb-4 mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Subject:</h3>
-                        <p className="text-gray-700">{preview.subject}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Content:</h3>
-                        <div className="whitespace-pre-wrap text-gray-700">
-                          {preview.content}
-                        </div>
-                      </div>
-                      <div className="mt-6 pt-4 border-t border-gray-200">
-                        <p className="text-sm text-gray-500">
-                          📎 Certificate attached: {sampleParticipant.certificateId || 'certificate'}.pdf
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
           </div>
         </div>
       )}
