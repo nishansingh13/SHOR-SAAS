@@ -15,6 +15,12 @@ const participantSchema = new Schema(
     amount: { type: Number, required: true },
     isVolunteer: { type: Boolean, default: false },
     tshirtSize: { type: String, enum: ['XS','S','M','L','XL','XXL', null], default: null },
+    certificates: [
+      {
+        certificateId: { type: Schema.Types.ObjectId, ref: 'Certificate' },
+        eventId: { type: Schema.Types.ObjectId, ref: 'Event' }
+      }
+    ]
   },
   { timestamps: true }
 );

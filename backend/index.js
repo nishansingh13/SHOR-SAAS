@@ -6,7 +6,8 @@ import eventRoutes from './routes/eventRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import participantRoutes from './routes/participantRoutes.js';
 import templateRoutes from './routes/templateRoutes.js';
-
+import certificateRoutes from './routes/certificateRoutes.js';
+import sendMail from './mailingSystem/sendMail.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
@@ -15,11 +16,13 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 dotenv.config();
 connectDB();
 
-// Mount all routes
+
 app.use('/api', eventRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', participantRoutes);
 app.use('/api', templateRoutes);
+app.use('/api', certificateRoutes);
+app.use('/api/mail',sendMail);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-}); 
+});
