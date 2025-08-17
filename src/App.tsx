@@ -19,6 +19,7 @@ import ParticipantPortal from './components/Participants/ParticipantPortal';
 import CertificateGeneration from './components/Certificates/CertificateGeneration';
 // import { Merge } from 'lucide-react';
 import Merged from './components/Merged/Merged';
+import EmailProvider from './contexts/EmailContext';
 
 // Type defining all valid routes in the app
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
@@ -100,6 +101,7 @@ function App() {
           <TemplateProvider>
             <ParticipantProvider>
               <CertificateProvider>
+                <EmailProvider>
                 <Routes>
                   <Route path="/participate" element={<ParticipantPortal />} />
                   <Route path="/login" element={<Login />} />
@@ -112,6 +114,7 @@ function App() {
                     } 
                   />
                 </Routes>
+                </EmailProvider>
               </CertificateProvider>
             </ParticipantProvider>
           </TemplateProvider>

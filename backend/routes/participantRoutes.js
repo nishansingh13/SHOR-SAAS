@@ -8,6 +8,6 @@ router.post('/participations', createParticipation);
 router.put('/participants/certificate',fillCertificateInfo)
 router.get('/participants/getById/:id', getParticipantById);
 router.get('/events/:eventId/participants', getParticipantsByEvent);
-router.get('/participants/all', getAllParticipants); // New endpoint to fetch all participants
+router.get('/participants/all', getAllParticipants); 
 
 export default router;

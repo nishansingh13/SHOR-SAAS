@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Mail
 } from 'lucide-react';
+import { useEmail } from '../../contexts/EmailContext';
 
 type ImagePlaceholder = {
   id: string;
@@ -32,7 +33,7 @@ type PreviewContent =
 type TabType = 'generate' | 'email';
 
 const Merged: React.FC = () => {
-  const { events } = useEvents();
+  const { events, emailTemplate, setEmailTemplate } = useEvents();
   const { getParticipantsByEvent, loadParticipants, updateParticipantCertificateStatus, sendEmail } = useParticipants();
   const { templates } = useTemplates();
   const { 
@@ -41,6 +42,7 @@ const Merged: React.FC = () => {
     loadCertificates, 
     certificates 
   } = useCertificates();
+  const {updateEmailStatus} = useEmail();
 
   const [activeTab, setActiveTab] = useState<TabType>('generate');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -48,6 +50,11 @@ const Merged: React.FC = () => {
   const [previewParticipant, setPreviewParticipant] = useState<Participant | null>(null);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [editedTemplate, setEditedTemplate] = useState({ 
+    subject: emailTemplate.subject, 
+    content: emailTemplate.content 
+  });
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
@@ -169,7 +176,7 @@ const Merged: React.FC = () => {
     setGenerating(false);
   };
 
-  const waitForImages = (element: HTMLElement): Promise<void> => {
+  const waitForImages = async(element: HTMLElement): Promise<void> => {
     const images = element.getElementsByTagName('img');
     const imagePromises = Array.from(images).map(img => {
       if (img.complete) return Promise.resolve();
@@ -242,7 +249,6 @@ const Merged: React.FC = () => {
         // Convert to JPEG with compression
         const imageData = canvas.toDataURL('image/jpeg', 0.85);
         
-        // Add the image to PDF
         pdf.addImage(imageData, 'JPEG', 0, 0, width, height);
 
         // Set PDF metadata
@@ -285,10 +291,7 @@ const Merged: React.FC = () => {
       if (!participant.certificateId || !participant.email) continue;
       try {
         console.log(`Generating PDF for ${participant.name}...`);
-        // Generate PDF certificate
         const certificatePDF = await generateCertificatePDF(participant);
-        
-        // Check file size (base64 is ~33% larger than binary)
         const binarySize = (certificatePDF.length * 3) / 4;
         const sizeInMB = binarySize / (1024 * 1024);
         
@@ -299,13 +302,24 @@ const Merged: React.FC = () => {
         }
         
         console.log('Sending email...');
+        const content = emailTemplate.content
+          .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
+          .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
+          .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
+          .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || '')
+          .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '');
+
+        const subject = emailTemplate.subject
+          .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '');
+
         const emailData = {
-          subject: `Your certificate for ${event?.name || 'the event'}`,
-          content: `Dear ${participant.name},\n\nYour certificate for ${event?.name || 'the event'} is ready.\nPlease find your certificate attached to this email.\nCertificate ID: ${participant.certificateId}\n\nBest regards,\n${event?.organizer || 'The Team'}`,
+          subject,
+          content,
           certificatePDF
         };
         
         const result = await sendEmail(participant.id, selectedEventId, emailData);
+        updateEmailStatus(participant.email, selectedEventId);
         console.log('Email sent result:', result);
         
       } catch (error) {
@@ -381,9 +395,19 @@ const Merged: React.FC = () => {
       // Generate PDF certificate
       const certificatePDF = await generateCertificatePDF(participant);
 
+      const content = emailTemplate.content
+        .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
+        .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
+        .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
+        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || '')
+        .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '');
+
+      const subject = emailTemplate.subject
+        .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '');
+
       const emailData = {
-        subject: `Your certificate for ${event?.name || 'the event'}`,
-        content: `Dear ${participant.name},\n\nYour certificate for ${event?.name || 'the event'} is ready.\nPlease find your certificate attached to this email.\nCertificate ID: ${participant.certificateId}\n\nBest regards,\n${event?.organizer || 'The Team'}`,
+        subject,
+        content,
         certificatePDF
       };
       const result = await sendEmail(participant.id, selectedEventId, emailData);
@@ -430,6 +454,77 @@ const Merged: React.FC = () => {
       {/* Configuration */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Configuration</h2>
+        {activeTab === 'email' && (
+          <div className="mb-6 border-b pb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-md font-semibold text-gray-800">Email Template</h3>
+              <button
+                onClick={() => setIsEditingTemplate(!isEditingTemplate)}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                {isEditingTemplate ? 'Cancel' : 'Edit Template'}
+              </button>
+            </div>
+            {isEditingTemplate ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject Template
+                  </label>
+                  <input
+                    type="text"
+                    value={editedTemplate.subject}
+                    onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Content Template
+                  </label>
+                  <textarea
+                    value={editedTemplate.content}
+                    onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Available Variables:</p>
+                  <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
+                    <li>{'{{ participant_name }}'} - Name of the participant</li>
+                    <li>{'{{ event_name }}'} - Name of the event</li>
+                    <li>{'{{ event_date }}'} - Date of the event</li>
+                    <li>{'{{ certificate_id }}'} - Certificate ID</li>
+                    <li>{'{{ organizer_name }}'} - Name of the organizer</li>
+                  </ul>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setEmailTemplate(editedTemplate);
+                      setIsEditingTemplate(false);
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Save Template
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Current Subject:</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{emailTemplate.subject}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Current Content:</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded whitespace-pre-wrap">{emailTemplate.content}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

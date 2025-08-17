@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Settings,
 } from 'lucide-react';
+import { useEmail } from '../../contexts/EmailContext';
 
 interface Participant {
   id: string;
@@ -22,6 +23,7 @@ const EmailDistribution: React.FC = () => {
   const { getParticipantsByEvent, sendEmail } = useParticipants();
   const [showSettings, setShowSettings] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const {updateEmailStatus} = useEmail();
   const [sending, setSending] = useState(false);
 
   const selectedEvent = events.find(e => e.id === selectedEventId);
@@ -53,6 +55,7 @@ const EmailDistribution: React.FC = () => {
       // Send emails in sequence
       for (const participant of readyToSend) {
          await sendEmail(participant.id,participant.email,processTemplate(participant));
+         await updateEmailStatus(participant.email , selectedEvent?.id);
       }
     } catch (error) {
       console.error('Error sending emails:', error);

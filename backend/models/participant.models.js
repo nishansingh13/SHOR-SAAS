@@ -20,7 +20,8 @@ const participantSchema = new Schema(
         certificateId: { type: Schema.Types.ObjectId, ref: 'Certificate' },
         eventId: { type: Schema.Types.ObjectId, ref: 'Event' }
       }
-    ]
+    ],
+    emailSent: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

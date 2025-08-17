@@ -211,9 +211,7 @@ Bob Johnson,bob@example.com,StartUp LLC,Designer`;
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+              
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -253,11 +251,11 @@ Bob Johnson,bob@example.com,StartUp LLC,Designer`;
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`
                         inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${participant.emailStatus === 'sent' ? 'bg-green-100 text-green-800' : ''}
-                        ${participant.emailStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        ${participant.emailStatus === 'failed' ? 'bg-red-100 text-red-800' : ''}
+                        ${participant.emailSent === true ? 'bg-green-100 text-green-800' : ''}
+                        ${participant.emailSent === false ? 'bg-yellow-100 text-yellow-800' : ''}
+
                       `}>
-                        {participant.emailStatus}
+                        {participant.emailSent === true ? 'Sent' : 'Pending'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -267,14 +265,7 @@ Bob Johnson,bob@example.com,StartUp LLC,Designer`;
                             Generate
                           </button>
                         )}
-                        {participant.certificateGenerated && !participant.emailSent && (
-                          <button className="text-blue-600 hover:text-blue-900">
-                            Send Email
-                          </button>
-                        )}
-                        <button className="text-gray-600 hover:text-gray-900">
-                          View Details
-                        </button>
+                    
                       </div>
                     </td>
                   </tr>
