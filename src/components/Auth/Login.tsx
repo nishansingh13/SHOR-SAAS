@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, Eye, EyeOff, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,12 +41,15 @@ const Login: React.FC = () => {
     if (rememberMe) localStorage.setItem('rememberEmail', email);
     else localStorage.removeItem('rememberEmail');
 
-    const success = await login(email, password);
+     const success = await login(email, password);
     if (!success) {
      
       setError('Invalid email or password');
-    }
-     else navigate("/dashboard");
+      return;
+    } 
+ 
+  
+    navigate("/dashboard");
   };
 
   const quickFill = (type: 'admin' | 'organizer') => {

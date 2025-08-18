@@ -38,7 +38,6 @@ const Merged: React.FC = () => {
   const { templates } = useTemplates();
   const { 
     generateCertificate, 
-    downloadCertificate: downloadCertificateFile,
     loadCertificates, 
     certificates 
   } = useCertificates();
@@ -56,10 +55,11 @@ const Merged: React.FC = () => {
     content: emailTemplate.content 
   });
 
+  // Events are already scoped by backend via auth; keep an extra UI filter if needed later
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   const eventParticipants = selectedEventId ? getParticipantsByEvent(selectedEventId) : [];
-  const eventCertificates = selectedEventId ? certificates.filter(c => String(c.eventId) === String(selectedEventId)) : [];
+  // const eventCertificates = selectedEventId ? certificates.filter(c => String(c.eventId) === String(selectedEventId)) : [];
 
   // Load data effects
   useEffect(() => {
@@ -123,12 +123,17 @@ const Merged: React.FC = () => {
   // Certificate generation
   const generatePDFFromPreview = async (contentElement: HTMLElement, participant: Participant): Promise<Blob> => {
     try {
+      const width = contentElement.scrollWidth;
+      const height = contentElement.scrollHeight;
       const canvas = await html2canvas(contentElement, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      });
+  scale: 2,
+      logging: false,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: width,
+      height: height
+    });
+
 
       const imgWidth = 210;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
@@ -162,7 +167,7 @@ const Merged: React.FC = () => {
       if (!participant.certificateGenerated) {
         try {
           const certificate = await generateCertificate(participant.id, selectedEventId);
-          if (certificate) {
+          if (certificate && certificate.id) {
             const participantId = participant.id;
             await updateParticipantCertificateStatus(participantId, selectedEventId, certificate.id);
           }
@@ -218,7 +223,7 @@ const Merged: React.FC = () => {
         allowTaint: true,
         backgroundColor: '#ffffff',
         imageTimeout: 15000, // Increase timeout for image loading
-        onclone: async (doc, element) => {
+  onclone: async (_doc, element) => {
           // Wait for all images in the cloned document
           const clonedImages = element.getElementsByTagName('img');
           console.log(`Waiting for ${clonedImages.length} images to load in clone...`);
@@ -328,7 +333,7 @@ const Merged: React.FC = () => {
           errorMessage = error.message;
         } else if (typeof error === 'object' && error !== null) {
           // Handle Axios errors or other error objects
-          const errorObj = error as any;
+          const errorObj = error as unknown as { message?: string; response?: { data?: { message?: string } } };
           errorMessage = errorObj.message || errorObj.response?.data?.message || JSON.stringify(error);
         }
         

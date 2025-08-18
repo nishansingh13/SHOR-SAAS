@@ -17,6 +17,11 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 dotenv.config();
 connectDB();
 
+// Warn early if JWT secret is missing
+if (!process.env.JWT_SECRET) {
+    console.warn('[startup] JWT_SECRET is not set. Authenticated routes will fail. Set JWT_SECRET in your .env and restart the server.');
+}
+
 
 app.use('/api', eventRoutes);
 app.use('/api/auth', authRoutes);

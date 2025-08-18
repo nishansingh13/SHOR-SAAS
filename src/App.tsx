@@ -84,7 +84,7 @@ const AdminLayout = () => {
               <Route path="/certificates" element={<CertificateGeneration />} />
               <Route path="/email" element={<EmailDistribution />} />
               <Route path="/reports" element={<Reports />} />
-              <Route path = "/merge" element={<Merged/>}/>
+              <Route path = "/others" element={<Merged/>}/>
             </Routes>
           </div>
         </main>
@@ -108,9 +108,9 @@ function App() {
                   <Route 
                     path="/*" 
                     element={
-                    
+                      <ProtectedRoute>
                         <AdminLayout />
-                    
+                        </ProtectedRoute>
                     } 
                   />
                 </Routes>

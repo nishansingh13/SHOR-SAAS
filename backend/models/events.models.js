@@ -64,6 +64,11 @@ const eventSchema = new Schema(
       required: true,
       default: true,
     },
+     organiserId:{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
+        }
   },
   { timestamps: true }
 );

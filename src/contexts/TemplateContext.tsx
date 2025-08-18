@@ -66,7 +66,9 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const refreshTemplates = async () => {
     try {
-      const res = await fetch(`${API_BASE}/templates`);
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> | undefined = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const res = await fetch(`${API_BASE}/templates`, { headers });
       if (!res.ok) throw new Error('Failed to fetch templates');
       const data: BackendTemplate[] = await res.json();
       setTemplates(Array.isArray(data) ? data.map(mapBackendToTemplate) : []);
@@ -89,9 +91,10 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         previewUrl: templateData.previewUrl,
         backgroundImage: templateData.backgroundImage,
       };
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/templates`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to create template');
@@ -111,9 +114,10 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         previewUrl: templateData.previewUrl,
         backgroundImage: templateData.backgroundImage,
       };
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/templates/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to update template');
@@ -125,7 +129,12 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteTemplate = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/templates/${id}`, { method: 'DELETE' });
+      const token = localStorage.getItem('token');
+      const headersDel: Record<string, string> | undefined = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const res = await fetch(`${API_BASE}/templates/${id}`, { 
+        method: 'DELETE',
+        headers: headersDel,
+      });
       if (!res.ok) throw new Error('Failed to delete template');
       setTemplates(prev => prev.filter(t => t.id !== id));
       if (selectedTemplate?.id === id) setSelectedTemplate(null);

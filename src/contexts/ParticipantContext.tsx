@@ -37,6 +37,13 @@ interface BackendParticipant {
   createdAt?: string | Date;
 }
 
+interface CertificateRef {
+  _id?: string;
+  certificateId?: string;
+  eventId?: string | { _id?: string };
+  event?: string;
+}
+
 interface ImportedRow {
   [key: string]: unknown;
   name?: string;
@@ -101,7 +108,11 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!eventId) return;
     try {
       // Use axios to fetch participants by event ID
-      const response = await axios.get(`${API_BASE}/events/${eventId}/participants`);
+      const response = await axios.get(`${API_BASE}/events/${eventId}/participants`,{
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data: BackendParticipant[] = response.data;
       
       // Map backend data to frontend model
@@ -109,11 +120,13 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const eventId = typeof p.event === 'string' ? p.event : p.event?._id || '';
 
         // Determine certificate info from the new certificates array shape
-        const certificatesArr: any[] = Array.isArray((p as any).certificates) ? (p as any).certificates : [];
-        const certEntry = certificatesArr.find((entry: any) => {
+        const certificatesArr: CertificateRef[] = Array.isArray((p as unknown as { certificates?: CertificateRef[] }).certificates)
+          ? (p as unknown as { certificates?: CertificateRef[] }).certificates as CertificateRef[]
+          : [];
+        const certEntry = certificatesArr.find((entry: CertificateRef) => {
           if (!entry) return false;
           // New shape: { certificateId, eventId }
-          const entryEventId = entry.eventId?._id || entry.eventId || entry.event;
+          const entryEventId = (typeof entry.eventId === 'object' ? entry.eventId?._id : entry.eventId) || entry.event;
           if (entryEventId) return String(entryEventId) === String(eventId);
           return false;
         });
@@ -153,7 +166,14 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const loadAllParticipants = useCallback(async () => {
     try {
       console.log('Loading all participants directly...');
-      const response = await axios.get(`${API_BASE}/participants/all`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('Skipping loadAllParticipants: no token');
+        return;
+      }
+      const response = await axios.get(`${API_BASE}/participants/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data: BackendParticipant[] = response.data;
       
       // Process participants and group them by event
@@ -165,10 +185,12 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
           if (!eventId) return;
 
           // derive certificate info from new certificates field
-          const certificatesArr: any[] = Array.isArray((p as any).certificates) ? (p as any).certificates : [];
-          const certEntry = certificatesArr.find((entry: any) => {
+          const certificatesArr: CertificateRef[] = Array.isArray((p as unknown as { certificates?: CertificateRef[] }).certificates)
+            ? (p as unknown as { certificates?: CertificateRef[] }).certificates as CertificateRef[]
+            : [];
+          const certEntry = certificatesArr.find((entry: CertificateRef) => {
             if (!entry) return false;
-            const entryEventId = entry.eventId?._id || entry.eventId || entry.event;
+            const entryEventId = (typeof entry.eventId === 'object' ? entry.eventId?._id : entry.eventId) || entry.event;
             if (entryEventId) return String(entryEventId) === String(eventId);
             return false;
           });
@@ -210,12 +232,20 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     const initializeData = async () => {
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('Skipping participants initialization: no token');
+          setIsInitialized(true);
+          return;
+        }
         // Try to load all participants first with the new endpoint
         await loadAllParticipants();
         
         // As a fallback, also try to load participants by event 
         // (we can remove this later if the all participants endpoint works well)
-        const eventsResponse = await axios.get(`${API_BASE}/events`);
+        const eventsResponse = await axios.get(`${API_BASE}/events`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const events = eventsResponse.data || [];
         
         if (Array.isArray(events) && events.length > 0) {
@@ -288,6 +318,15 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   }, []);
 
+  // Helper to resolve participant email securely
+  const getEmailById = useCallback(async (participantId: string): Promise<string> => {
+    const token = localStorage.getItem('token');
+    const res = await axios.get(`${API_BASE}/participants/getById/${participantId}` , {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return res.data.email || '';
+  }, []);
+
   // This method replaces the previous generateCertificate method
   // It only updates the local state without making any API calls
   const updateParticipantCertificateStatus = useCallback((
@@ -330,10 +369,6 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [loadParticipants]);
 
   const allParticipants: Participant[] = Object.values(participantsByEvent).flat();
-   const getEmailById = useCallback(async (participantId: string): Promise<string> => {
-  const res = await axios.get(`${API_BASE}/participants/getById/${participantId}`);
-  return res.data.email || '';
-}, []);
 
 
   const sendEmail = useCallback(async (participantId: string, eventId: string, emailData: { subject: string; content: string; certificatePDF?: string }) => {
@@ -390,7 +425,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Rethrow with better error message
       throw new Error(`Failed to send email: ${errorMessage}`);
     }
-  }, [updateParticipant]);
+  }, [updateParticipant, getEmailById]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = React.useMemo(() => ({

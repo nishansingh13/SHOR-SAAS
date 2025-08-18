@@ -13,7 +13,8 @@ export const createTemplate = async (req, res) => {
       content,
       placeholders,
       previewUrl,
-      backgroundImage,
+  backgroundImage,
+  organiserId: req.user?.userId,
     });
 
     return res.status(201).json(doc);
@@ -23,9 +24,11 @@ export const createTemplate = async (req, res) => {
   }
 };
 
-export const getTemplates = async (_req, res) => {
+export const getTemplates = async (req, res) => {
   try {
-    const list = await TemplateModel.find().sort({ createdAt: -1 });
+  const isOrganizer = req.user?.role === 'organizer';
+  const filter = isOrganizer ? { organiserId: req.user.userId } : {};
+  const list = await TemplateModel.find(filter).sort({ createdAt: -1 });
     return res.json(list);
   } catch (err) {
     console.error('getTemplates error:', err);
@@ -49,7 +52,9 @@ export const updateTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     const payload = req.body || {};
-    const updated = await TemplateModel.findByIdAndUpdate(id, payload, { new: true });
+  // Ensure organizer can only update their own templates
+  const filter = req.user?.role === 'organizer' ? { _id: id, organiserId: req.user.userId } : { _id: id };
+  const updated = await TemplateModel.findOneAndUpdate(filter, payload, { new: true });
     if (!updated) return res.status(404).json({ error: 'Template not found' });
     return res.json(updated);
   } catch (err) {
@@ -61,7 +66,8 @@ export const updateTemplate = async (req, res) => {
 export const deleteTemplate = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await TemplateModel.findByIdAndDelete(id);
+  const filter = req.user?.role === 'organizer' ? { _id: id, organiserId: req.user.userId } : { _id: id };
+  const deleted = await TemplateModel.findOneAndDelete(filter);
     if (!deleted) return res.status(404).json({ error: 'Template not found' });
     return res.json({ success: true, id })
   } catch (err) {

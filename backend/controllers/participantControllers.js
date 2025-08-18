@@ -54,6 +54,14 @@ export const createParticipation = async (req, res) => {
 export const getParticipantsByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
+    // If organizer, enforce access to own events only
+    if (req.user?.role === 'organizer') {
+      const event = await EventModel.findById(eventId).select('organiserId');
+      if (!event) return res.status(404).json({ error: 'Event not found' });
+      if (String(event.organiserId) !== String(req.user.userId)) {
+        return res.status(403).json({ error: 'Forbidden: Not your event' });
+      }
+    }
     const list = await ParticipantModel.find({ event: eventId }).sort({ createdAt: -1 });
     return res.json(list);
   } catch (err) {
@@ -65,9 +73,18 @@ export const getParticipantsByEvent = async (req, res) => {
 // New function to get all participants regardless of event
 export const getAllParticipants = async (req, res) => {
   try {
-    const list = await ParticipantModel.find({}).sort({ createdAt: -1 });
-    console.log(`Returning ${list.length} participants across all events`);
-    return res.json(list);
+    // Admins get all participants; organizers only their events
+    if (req.user?.role === 'organizer') {
+      const events = await EventModel.find({ organiserId: req.user.userId }).select('_id');
+      const eventIds = events.map(e => e._id);
+      const list = await ParticipantModel.find({ event: { $in: eventIds } }).sort({ createdAt: -1 });
+      console.log(`Returning ${list.length} participants for organizer ${req.user.userId}`);
+      return res.json(list);
+    } else {
+      const list = await ParticipantModel.find({}).sort({ createdAt: -1 });
+      console.log(`Returning ${list.length} participants across all events`);
+      return res.json(list);
+    }
   } catch (err) {
     console.error('getAllParticipants error:', err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -77,9 +94,15 @@ export const getAllParticipants = async (req, res) => {
 export const getParticipantById = async (req, res) => {
   try {
     const { id } = req.params;
-    const participant = await ParticipantModel.findById(id);
+    const participant = await ParticipantModel.findById(id).populate('event', 'organiserId');
     if (!participant) {
       return res.status(404).json({ error: 'Participant not found' });
+    }
+    if (req.user?.role === 'organizer') {
+      const organiserId = participant?.event?.organiserId;
+      if (organiserId && String(organiserId) !== String(req.user.userId)) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
     }
     return res.json(participant);
   } catch (err) {

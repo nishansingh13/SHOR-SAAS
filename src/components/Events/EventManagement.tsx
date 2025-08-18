@@ -17,6 +17,7 @@ import {
 const EventManagement: React.FC = () => {
   const { events, createEvent, updateEvent, deleteEvent, refreshEvents, getRawEventById } = useEvents();
   const { user } = useAuth();
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
   const [error, setError] = useState<string>('');
@@ -47,6 +48,7 @@ const EventManagement: React.FC = () => {
       ticket: formData.ticket,
       volunteerCount: formData.volunteerCount,
       isTshirtAvailable: formData.isTshirtAvailable,
+      organiserId: user?.id // Add the organiser ID from the logged-in user
     };
 
     if (editingEvent) {
@@ -65,15 +67,19 @@ const EventManagement: React.FC = () => {
       setEditingEvent(null);
     } else {
       try {
-        const res = await fetch('http://localhost:3000/api/events', {
+        const token = localStorage.getItem('token');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch(`${API_BASE}/events`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('Failed to create event');
         await refreshEvents();
       } catch (err) {
         console.error(err);
+        setError('Failed to create event');
         // Fallback to local add so UI isn’t blocked
         const mapped = {
           name: formData.title,

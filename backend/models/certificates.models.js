@@ -11,6 +11,11 @@ const certificateSchema = new mongoose.Schema({
         required: true,
         ref: 'Event'
     },
+    organiserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
     templateId: {
         type: String,
         ref: 'Template'

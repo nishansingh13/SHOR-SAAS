@@ -30,19 +30,12 @@ export const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
-
-    // Seed demo users on first run
-    await ensureDemoUsers();
-
     const user = await UserModel.findOne({ email: String(email).toLowerCase().trim() });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
-    const token = jwt.sign({ sub: user._id.toString(), role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-
+    const JWT_SECRET = process.env.JWT_SECRET;
+    const token = jwt.sign({ userId: user._id.toString(), role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     return res.json({
       token,
       user: {

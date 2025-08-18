@@ -33,6 +33,7 @@ interface CertificateContextType {
 
 const CertificateContext = createContext<CertificateContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCertificates = () => {
   const context = useContext(CertificateContext);
   if (!context) throw new Error('useCertificates must be used within a CertificateProvider');
@@ -44,9 +45,11 @@ export const CertificateProvider = ({ children }: { children: React.ReactNode })
 
   const loadCertificates = useCallback(async (_eventId?: string) => {
     try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
       const res = _eventId
-        ? await axios.get(`${server}/certificates/event/${_eventId}`)
-        : await axios.get(`${server}/certificates`);
+        ? await axios.get(`${server}/certificates/event/${_eventId}`, { headers })
+        : await axios.get(`${server}/certificates`, { headers });
 
       const data: CertificateResponse[] = res.data;
       if (!Array.isArray(data)) return;
@@ -68,7 +71,10 @@ export const CertificateProvider = ({ children }: { children: React.ReactNode })
 
   const fillCertificateInfo = useCallback(async (certificateId: string) => {
     try {
-      const res = await axios.put(`${server}/participants/certificate`, { certificateId });
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${server}/participants/certificate`, { certificateId }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       return res.status === 200;
     } catch (error) {
       console.error('Error updating participant certificate:', error);
@@ -78,7 +84,10 @@ export const CertificateProvider = ({ children }: { children: React.ReactNode })
 
   const generateCertificate = useCallback(async (participantId: string, eventId: string) => {
     try {
-      const res = await axios.post(`${server}/certificates/generate`, { participantId, eventId });
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${server}/certificates/generate`, { participantId, eventId }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
 
       if (res.status === 201) {
         const certData: CertificateResponse = res.data.certificate;
@@ -114,7 +123,10 @@ export const CertificateProvider = ({ children }: { children: React.ReactNode })
 
   const downloadCertificate = useCallback(async (certificateId: string, format: 'pdf' | 'jpg') => {
     try {
-      const res = await axios.get(`${server}/certificates/${certificateId}/download?format=${format}`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${server}/certificates/${certificateId}/download?format=${format}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (res.status === 200) {
         alert(res.data?.message || 'Download initiated');
         return res.data?.downloadUrl || null;
@@ -128,7 +140,10 @@ export const CertificateProvider = ({ children }: { children: React.ReactNode })
 
   const sendEmail = useCallback(async (certificateId: string, email: string) => {
     try {
-      const res = await axios.post(`${server}/certificates/${certificateId}/send-email`, { email });
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${server}/certificates/${certificateId}/send-email`, { email }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (res.status === 200) {
         setCertificates((prev) =>
           prev.map((cert) =>
@@ -146,10 +161,13 @@ export const CertificateProvider = ({ children }: { children: React.ReactNode })
 
   const verifyCertificate = useCallback(async (certificateNumber: string) => {
     try {
-      const res = await axios.get(`${server}/certificates/verify/${certificateNumber}`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${server}/certificates/verify/${certificateNumber}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (res.status === 200) return res.data.certificate || null;
       return null;
-    } catch (err) {
+    } catch {
       return null;
     }
   }, []);

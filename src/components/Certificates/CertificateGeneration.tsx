@@ -65,7 +65,6 @@ const CertificateGeneration: React.FC = () => {
     if (selectedEventId) {
       loadParticipants(selectedEventId);
       // Load certificates for this event
-      loadCertificates(selectedEventId);
     }
   }, [selectedEventId, loadParticipants, loadCertificates]);
   
@@ -75,8 +74,7 @@ const CertificateGeneration: React.FC = () => {
     events.forEach(event => {
       loadParticipants(event.id);
     });
-    // Load all certificates
-    loadCertificates();
+   
   }, [events, loadParticipants, loadCertificates]);
 
   const handlePreview = (participant: Participant) => {
@@ -145,7 +143,8 @@ const CertificateGeneration: React.FC = () => {
     
     // Reload certificates to refresh the list
     await loadCertificates(selectedEventId);
-    
+    console.log(selectedEventId);
+
     setGenerating(false);
   };
 

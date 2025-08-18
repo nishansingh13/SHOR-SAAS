@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useAuth } from './AuthContext';
 
 export interface Event {
   id: string;
@@ -69,6 +70,7 @@ interface BackendEvent {
   certificatesGenerated?: number;
   createdAt?: string | Date;
   organizer?: string;
+  organiserId?: string;
 }
 
 const mapBackendToEvent = (e: BackendEvent): Event => ({
@@ -80,7 +82,8 @@ const mapBackendToEvent = (e: BackendEvent): Event => ({
   participantCount: e.participantCount ?? 0,
   certificatesGenerated: e.certificatesGenerated ?? 0,
   createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString(),
-  organizer: e.organizer ?? 'Organizer',
+  // prefer explicit organizer string; fallback to organiserId string if present
+  organizer: e.organizer ?? (e.organiserId ? String(e.organiserId) : 'Organizer'),
   // Include additional fields from backend
   image: e.image,
   venue: e.venue,
@@ -92,6 +95,7 @@ const mapBackendToEvent = (e: BackendEvent): Event => ({
 });
 
 export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [rawEventsMap, setRawEventsMap] = useState<Record<string, BackendEvent>>({});
@@ -113,11 +117,21 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   Best regards,
   {{ organizer_name }}`
     });
-  const refreshEvents = async () => {
+  const refreshEvents = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE}/events`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // Avoid hitting protected endpoint until token is available
+        setEvents([]);
+        setRawEventsMap({});
+        return;
+      }
+      const response = await axios.get(`${API_BASE}/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data: BackendEvent[] = response.data;
-      const mapped: Event[] = Array.isArray(data) ? data.map(mapBackendToEvent) : [];
+  // Backend already scopes events by organiserId; no extra UI filter
+  const mapped: Event[] = Array.isArray(data) ? data.map(mapBackendToEvent) : [];
       setEvents(mapped);
       const nextMap: Record<string, BackendEvent> = {};
       for (const e of data || []) {
@@ -129,11 +143,12 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.error('Error loading events:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    // reload when auth user changes so event list reflects organizer scoping
     refreshEvents();
-  }, []);
+  }, [refreshEvents, user]);
 
   const createEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'participantCount' | 'certificatesGenerated'>) => {
     const newEvent: Event = {
@@ -170,7 +185,10 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     try {
-      const response = await axios.put(`${API_BASE}/events/${id}`, payload);
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`${API_BASE}/events/${id}`, payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       console.log('Event updated successfully:', response.data);
       await refreshEvents();
     } catch (err) {
@@ -188,7 +206,10 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
     try {
-      const response = await axios.delete(`${API_BASE}/events/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(`${API_BASE}/events/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       console.log('Event deleted successfully:', response.data);
       setEvents(prev => prev.filter(e => e.id !== id));
       setRawEventsMap(prev => {

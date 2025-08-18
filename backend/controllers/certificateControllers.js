@@ -18,6 +18,7 @@ const generateCertificate = async (req, res) => {
       eventId,
       certificateNumber,
       generatedAt: new Date(),
+      organiserId: req.user?.userId,
     });
     
     await newCertificate.save();
@@ -36,12 +37,12 @@ const generateCertificate = async (req, res) => {
     });
   }
 };
-
-// Get certificates by event ID
 const getCertificatesByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    
+    const { userId } = req.user;
+    console.log(userId);
+
     if (!eventId) {
       return res.status(400).json({
         success: false,
@@ -49,8 +50,7 @@ const getCertificatesByEvent = async (req, res) => {
       });
     }
     
-    const certificates = await CertificateModel.find({ eventId });
-    
+    const certificates = await CertificateModel.find({ organiserId:userId, eventId });
     return res.status(200).json(certificates);
     
   } catch (error) {
@@ -100,9 +100,10 @@ const certificateExists = async (req, res) => {
 const getAllCertificates = async (req, res) => {
   try {
     const { eventId } = req.query;
-    
-    // If eventId is provided, filter certificates by event
-    const filter = eventId ? { eventId } : {};
+    const baseFilter = eventId ? { eventId } : {};
+    // Admin sees all; organizer only their certificates
+    const roleFilter = req.user?.role === 'organizer' ? { organiserId: req.user.userId } : {};
+    const filter = { ...baseFilter, ...roleFilter };
     const certificates = await CertificateModel.find(filter);
     
     console.log(`Fetched ${certificates.length} certificates${eventId ? ` for event ${eventId}` : ''}`);

@@ -3,7 +3,8 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface CertificateInterface extends Document {
     type : string,
     description : string,
-    eventName: string
+    eventName: string,
+    organiserId: mongoose.Schema.Types.ObjectId
 }
 
 const certificateSchema : Schema<CertificateInterface> = new Schema<CertificateInterface>({
@@ -19,6 +20,11 @@ const certificateSchema : Schema<CertificateInterface> = new Schema<CertificateI
     eventName: {
         type: String,
         default: ""
+    },
+    organiserId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Organiser",
+        required: true
     }
 }, {timestamps: true});
 

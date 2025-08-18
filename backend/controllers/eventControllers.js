@@ -1,7 +1,12 @@
 import EventModel from "../models/events.models.js";
 
 export const saveEvent = async (req, res) => {
-    const newEvent = new EventModel(req.body);
+    const payload = { ...req.body };
+    // Attach organizer for ownership
+    if (req.user?.userId) {
+        payload.organiserId = req.user.userId;
+    }
+    const newEvent = new EventModel(payload);
     try {
         await newEvent.save();
         res.status(201).json(newEvent);
@@ -13,11 +18,23 @@ export const saveEvent = async (req, res) => {
 
 export const getEvents = async (req, res) => {
     try {
-        
-        const events = await EventModel.find();
+        // Admins see all; organizers only their events
+        const filter = req.user?.role === 'organizer' ? { organiserId: req.user.userId } : {};
+        const events = await EventModel.find(filter);
         res.status(200).json(events);
     } catch (error) {
         console.error("Error fetching events:", error);
+        res.status(500).json({ error: "Failed to fetch events" });
+    }
+};
+
+// Public: list events for participant portal without authentication
+export const getPublicEvents = async (_req, res) => {
+    try {
+        const events = await EventModel.find({});
+        res.status(200).json(events);
+    } catch (error) {
+        console.error("Error fetching public events:", error);
         res.status(500).json({ error: "Failed to fetch events" });
     }
 };
@@ -26,7 +43,8 @@ export const updateEventById = async (req, res) => {
     const updatedData = req.body;
 
     try {
-        const updatedEvent = await EventModel.findByIdAndUpdate(id, updatedData, { new: true });
+        const filter = req.user?.role === 'organizer' ? { _id: id, organiserId: req.user.userId } : { _id: id };
+        const updatedEvent = await EventModel.findOneAndUpdate(filter, updatedData, { new: true });
         if (!updatedEvent) {
             return res.status(404).json({ error: "Event not found" });
         }
@@ -41,7 +59,8 @@ export const updateEventById = async (req, res) => {
 export const deleteEventById = async (req, res) => {
     const { id } = req.params;
     try {
-        const deleted = await EventModel.findByIdAndDelete(id);
+        const filter = req.user?.role === 'organizer' ? { _id: id, organiserId: req.user.userId } : { _id: id };
+        const deleted = await EventModel.findOneAndDelete(filter);
         if (!deleted) {
             return res.status(404).json({ error: "Event not found" });
         }

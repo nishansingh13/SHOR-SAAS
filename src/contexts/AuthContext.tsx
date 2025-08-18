@@ -16,6 +16,7 @@ interface User {
   role: 'admin' | 'organizer';
 }
 
+
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;

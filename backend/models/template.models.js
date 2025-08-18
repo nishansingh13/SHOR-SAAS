@@ -9,7 +9,8 @@ const templateSchema = new Schema(
     content: { type: String, required: true },
     placeholders: { type: [String], default: [] },
     previewUrl: { type: String },
-    backgroundImage: { type: String },
+  backgroundImage: { type: String },
+  organiserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
 );

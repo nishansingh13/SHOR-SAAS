@@ -17,7 +17,8 @@ export interface Events extends Document{
     volunteerCount: number,
     volunteersApplied: number,
     participantCount: number, // New field to track total participants registered
-    isTshirtAvailable : boolean
+    isTshirtAvailable : boolean,
+    organiserId: Schema.Types.ObjectId
 }
 
 const ticketSchema : Schema<ticketInterface> = new Schema<ticketInterface>({
@@ -76,12 +77,17 @@ const eventSchema : Schema<Events> = new Schema<Events>({
     },
     participantCount: {
         type: Number,
-        default: 0 // Default participantCount to 0
+        default: 0 
     },
     isTshirtAvailable: {
         type: Boolean,
         required: true,
         default: true
+    },
+    organiserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     }
 },{timestamps: true});
 

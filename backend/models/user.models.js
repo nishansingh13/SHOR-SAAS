@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
     default: 'organizer',
     required: true,
   },
+  
 }, { timestamps: true });
 
 const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
