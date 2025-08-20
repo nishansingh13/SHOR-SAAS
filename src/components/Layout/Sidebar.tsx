@@ -7,7 +7,7 @@ type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certif
 
 interface SidebarProps {
   currentPage: RouteType;
-  onPageChange: (page: RouteType) => void;
+  onPageChange?: (page: RouteType) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {

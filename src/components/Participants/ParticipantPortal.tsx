@@ -147,7 +147,7 @@ function ParticipantPortal() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="mt-4 text-gray-600">Loading events...</p>
           </div>
         </div>
@@ -180,7 +180,9 @@ function ParticipantPortal() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Discover Events</h1>
+            <h1 className="text-3xl font-extrabold text-gray-900">
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Discover Events</span>
+            </h1>
             <p className="mt-2 text-gray-600">Find and register for amazing events happening around you</p>
           </div>
         </div>
@@ -201,8 +203,8 @@ function ParticipantPortal() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-red-100">
-                      <svg className="w-16 h-16 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+                      <svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 0h6M9 11v6a1 1 0 001 1h4a1 1 0 001-1v-6M9 11V9a2 2 0 012-2h2a2 2 0 012 2v2M9 11H7a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-2" />
                       </svg>
                     </div>
@@ -227,7 +229,7 @@ function ParticipantPortal() {
                       <div className="space-y-2 mb-4">
                         {event.date && (
                           <div className="flex items-center text-sm text-gray-500">
-                            <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 0h6M9 11v6a1 1 0 001 1h4a1 1 0 001-1v-6M9 11V9a2 2 0 012-2h2a2 2 0 012 2v2M9 11H7a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-2" />
                             </svg>
                             <span className="font-medium">
@@ -244,7 +246,7 @@ function ParticipantPortal() {
                         
                         {event.venue && (
                           <div className="flex items-center text-sm text-gray-500">
-                            <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
@@ -280,7 +282,7 @@ function ParticipantPortal() {
                           setSelectedEvent(event); 
                           setTicketName(event.ticket?.[0]?.name || '');
                         }}
-                        className="w-full lg:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                        className="w-full lg:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-95 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
                       >
                         Register Now
                       </button>
@@ -341,7 +343,7 @@ function ParticipantPortal() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -357,7 +359,7 @@ function ParticipantPortal() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         placeholder="your.email@example.com"
                       />
                     </div>
@@ -372,7 +374,7 @@ function ParticipantPortal() {
                         name="phone"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         placeholder="+91 98765 43210"
                       />
                     </div>
@@ -389,7 +391,7 @@ function ParticipantPortal() {
                           value={ticketName}
                           onChange={(e) => setTicketName(e.target.value)}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         >
                           <option value="">Select ticket</option>
                           {selectedEvent.ticket?.map((ticket) => (
@@ -412,13 +414,13 @@ function ParticipantPortal() {
                           value={quantity}
                           onChange={(e) => setQuantity(parseInt(e.target.value))}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                         />
                       </div>
                     </div>
 
                     {/* Volunteer Section */}
-                    <div className="bg-orange-50 border border-orange-200 rounded-md p-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                       <div className="flex items-start">
                         <input
                           id="volunteer"
@@ -426,7 +428,7 @@ function ParticipantPortal() {
                           type="checkbox"
                           checked={isVolunteer}
                           onChange={(e) => setIsVolunteer(e.target.checked)}
-                          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded mt-0.5"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300 rounded mt-0.5"
                         />
                         <div className="ml-3">
                           <label htmlFor="volunteer" className="block text-sm font-medium text-gray-900">
@@ -449,7 +451,7 @@ function ParticipantPortal() {
                             value={tshirtSize}
                             onChange={(e) => setTshirtSize(e.target.value)}
                             required={isVolunteer}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                           >
                             <option value="">Select size</option>
                             {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
@@ -492,7 +494,7 @@ function ParticipantPortal() {
                 <button
                   type="button"
                   onClick={() => { setSelectedEvent(null); resetForm(); }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
                 >
                   Cancel
                 </button>
@@ -500,7 +502,7 @@ function ParticipantPortal() {
                   type="submit"
                   onClick={handleSubmit}
                   disabled={submitStatus === 'loading' || submitStatus === 'success'}
-                  className={`px-6 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+                  className={`px-6 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
                     (submitStatus === 'loading' || submitStatus === 'success') ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >

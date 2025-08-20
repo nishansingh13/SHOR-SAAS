@@ -20,6 +20,7 @@ import CertificateGeneration from './components/Certificates/CertificateGenerati
 // import { Merge } from 'lucide-react';
 import Merged from './components/Merged/Merged';
 import EmailProvider from './contexts/EmailContext';
+import LandingPage from './components/Landing/LandingPage';
 
 // Type defining all valid routes in the app
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
@@ -29,12 +30,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const location = useLocation();
 
-  if (!user) {
+  if (!user) {  
     // Redirect to login if not authenticated, but remember the page they tried to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  return <>{children}</>; 
 };
 
 // Layout component for admin pages with sidebar and header
@@ -67,16 +68,14 @@ const AdminLayout = () => {
 
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Header */}
         <Header 
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         />
 
-        {/* Main content area */}
         <main className="flex-1 overflow-auto">
           <div className="p-6">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+ 
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/events" element={<EventManagement />} />
               <Route path="/templates" element={<TemplateManagement />} />
@@ -84,7 +83,7 @@ const AdminLayout = () => {
               <Route path="/certificates" element={<CertificateGeneration />} />
               <Route path="/email" element={<EmailDistribution />} />
               <Route path="/reports" element={<Reports />} />
-              <Route path = "/others" element={<Merged/>}/>
+              <Route path="/others" element={<Merged/>}/>
             </Routes>
           </div>
         </main>
@@ -103,8 +102,11 @@ function App() {
               <CertificateProvider>
                 <EmailProvider>
                 <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<LandingPage />} />
                   <Route path="/participate" element={<ParticipantPortal />} />
                   <Route path="/login" element={<Login />} />
+                  {/* Protected admin routes */}
                   <Route 
                     path="/*" 
                     element={
