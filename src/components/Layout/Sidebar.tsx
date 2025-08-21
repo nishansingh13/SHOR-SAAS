@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'templates', label: 'Templates', icon: FileTemplate },
+  { id: 'approvals', label: 'Approvals', icon: Users },
     { id: 'participants', label: 'Participants', icon: Users },
     { id: 'certificates', label: 'Certificates', icon: Award },
     { id: 'email', label: 'Email Distribution', icon: Mail },
@@ -29,8 +30,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
   const filteredMenuItems = menuItems.filter(item => {
     if (user?.role === 'organizer') {
       // Organizers can't access reports
-      return item.id !== 'reports';
+      return item.id !== 'reports' && item.id !== 'approvals';
     }
+    // Only admins should see approvals
+    if (item.id === 'approvals') return user?.role === 'admin';
     return true;
   });
 

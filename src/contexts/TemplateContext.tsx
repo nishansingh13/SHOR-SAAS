@@ -65,10 +65,14 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   const refreshTemplates = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setTemplates([]);
+      return;
+    }
     try {
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> | undefined = token ? { Authorization: `Bearer ${token}` } : undefined;
-  const res = await fetch(`${API_BASE}/templates`, { headers });
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      const res = await fetch(`${API_BASE}/templates`, { headers });
       if (!res.ok) throw new Error('Failed to fetch templates');
       const data: BackendTemplate[] = await res.json();
       setTemplates(Array.isArray(data) ? data.map(mapBackendToTemplate) : []);
@@ -78,7 +82,12 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    refreshTemplates();
+    const token = localStorage.getItem('token');
+    if (token) {
+      refreshTemplates();
+    } else {
+      setTemplates([]);
+    }
   }, []);
 
   const createTemplate = async (templateData: Omit<Template, 'id' | 'createdAt' | 'lastModified'>) => {

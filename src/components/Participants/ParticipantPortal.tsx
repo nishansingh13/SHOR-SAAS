@@ -15,6 +15,7 @@ interface EventItem {
   volunteersApplied?: number;
   isTshirtAvailable?: boolean;
   participantCount?: number;
+  status?: string;
 }
 
 type BackendTicket = { name?: string; price?: number; _id?: string };
@@ -33,14 +34,14 @@ type BackendEvent = {
   volunteersApplied?: number;
   isTshirtAvailable?: boolean;
   participantCount?: number;
+  status : string
 };
 
 function ParticipantPortal() {
   // Use contexts for better data integration
-  const { events, refreshEvents } = useEvents();
+
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   const [publicEvents, setPublicEvents] = useState<EventItem[]>([]);
-  const eventsToShow = useMemo(() => (events && events.length > 0 ? events : publicEvents), [events, publicEvents]);
   const { registerParticipant } = useParticipants();
 
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,7 @@ function ParticipantPortal() {
         const res = await fetch(`${API_BASE}/public/events`);
         if (!res.ok) throw new Error('Failed to load events');
         const data = await res.json();
+        console.log('Fetched events:', data);
         if (!Array.isArray(data)) throw new Error('Unexpected events payload');
         const mapped: EventItem[] = (data as BackendEvent[]).map((e) => ({
           id: (e._id || e.id || '') as string,
@@ -77,6 +79,7 @@ function ParticipantPortal() {
           volunteersApplied: e.volunteersApplied,
           isTshirtAvailable: e.isTshirtAvailable,
           participantCount: e.participantCount,
+          status : e.status
         }));
         setPublicEvents(mapped);
       } catch {
@@ -120,8 +123,7 @@ function ParticipantPortal() {
         tshirtSize: isVolunteer ? tshirtSize : undefined,
       });
       
-      // Refresh events to update participant counts in UI
-      await refreshEvents();
+ 
       
       console.log('Registration result:', result);
       
@@ -191,7 +193,7 @@ function ParticipantPortal() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Events Grid */}
         <div className="space-y-6">
-          {eventsToShow.map((event) => (
+          {publicEvents.map((event) => (
             <div key={event.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
               <div className="flex flex-col lg:flex-row">
                 {/* Event Image */}
@@ -294,7 +296,7 @@ function ParticipantPortal() {
           ))}
         </div>
 
-        {eventsToShow.length === 0 && (
+        {publicEvents.length === 0 && (
           <div className="text-center py-16">
             <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 0h6M9 11v6a1 1 0 001 1h4a1 1 0 001-1v-6M9 11V9a2 2 0 012-2h2a2 2 0 012 2v2M9 11H7a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-2" />

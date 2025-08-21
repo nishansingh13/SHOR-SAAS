@@ -47,6 +47,8 @@ const Merged: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [previewParticipant, setPreviewParticipant] = useState<Participant | null>(null);
+  // Offscreen render target used for programmatic captures (so users don't see the modal)
+  const [offscreenPreviewParticipant, setOffscreenPreviewParticipant] = useState<Participant | null>(null);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
@@ -86,6 +88,15 @@ const Merged: React.FC = () => {
   const handlePreview = (participant: Participant) => {
     if (!selectedTemplate) return;
     setPreviewParticipant(participant);
+  };
+
+  // Prepare preview for capture. If showModal is true, the visible modal will be used,
+  // otherwise populate the offscreen render target.
+  const preparePreviewForCapture = async (participant: Participant, showModal = false) => {
+    if (showModal) setPreviewParticipant(participant);
+    else setOffscreenPreviewParticipant(participant);
+    // Give React time to render
+    await new Promise((r) => setTimeout(r, 200));
   };
 
   const generatePreviewContent = (participant: Participant): PreviewContent => {
@@ -199,14 +210,11 @@ const Merged: React.FC = () => {
         throw new Error('No template selected');
       }
 
-      // First show preview
-      handlePreview(participant);
-      
-      // Wait for preview to render and stabilize
-      await new Promise(resolve => setTimeout(resolve, 100));
+  // Prepare an offscreen preview for capture (don't show modal)
+  await preparePreviewForCapture(participant, false);
 
-      // Get the preview content element
-      const certificateElement = document.querySelector('#certificate-wrapper .certificate-preview-content') as HTMLElement;
+  // Get the offscreen preview content element
+  const certificateElement = document.querySelector('#certificate-render-root .certificate-preview-content') as HTMLElement;
       if (!certificateElement) {
         throw new Error('Certificate preview element not found');
       }
@@ -273,6 +281,9 @@ const Merged: React.FC = () => {
           throw new Error('Failed to generate PDF data');
         }
 
+        // Clear offscreen preview now that we have the PDF
+        setOffscreenPreviewParticipant(null);
+
         return base64Data;
       } catch (pdfError) {
         console.error('PDF generation error:', pdfError);
@@ -281,6 +292,8 @@ const Merged: React.FC = () => {
       
     } catch (error) {
       console.error('Error generating certificate PDF:', error);
+      // Clear offscreen preview on error as well
+      setOffscreenPreviewParticipant(null);
       throw new Error(`Failed to generate certificate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -324,8 +337,15 @@ const Merged: React.FC = () => {
         };
         
         const result = await sendEmail(participant.id, selectedEventId, emailData);
-        updateEmailStatus(participant.email, selectedEventId);
         console.log('Email sent result:', result);
+        
+        // Update email status and wait for it to complete
+        try {
+          await updateEmailStatus(participant.email, selectedEventId);
+          console.log(`Updated email status for ${participant.email}`);
+        } catch (error) {
+          console.error(`Failed to update email status for ${participant.email}:`, error);
+        }
         
       } catch (error) {
         let errorMessage = 'Unknown error';
@@ -416,8 +436,16 @@ const Merged: React.FC = () => {
         certificatePDF
       };
       const result = await sendEmail(participant.id, selectedEventId, emailData);
+      console.log("Executing email status update...");
+      try {
+        await updateEmailStatus(participant.email, selectedEventId);
+        await loadParticipants(selectedEventId);
+      } catch (error) {
+        console.error("Failed to update email status:", error);
+      }
       if (result) {
         alert(`Certificate sent successfully to ${participant.email}`);
+        
       } else {
         alert(`Failed to send certificate to ${participant.email}`);
       }
@@ -676,6 +704,62 @@ const Merged: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Offscreen render root for programmatic captures (kept offscreen so users don't see it) */}
+      <div id="certificate-render-root" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', height: '297mm', overflow: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+        {offscreenPreviewParticipant && selectedTemplate && (
+          <div className="bg-white p-4" style={{ maxWidth: '100%', overflowX: 'auto' }}>
+            <div className="certificate-preview-content" style={{ 
+              width: '210mm', 
+              minHeight: '297mm', 
+              background: '#fff', 
+              position: 'relative', 
+              padding: '15mm',
+              boxSizing: 'border-box',
+              margin: '0 auto'
+            }}>
+              {(() => {
+                const content = generatePreviewContent(offscreenPreviewParticipant);
+                if (typeof content === 'object' && content.type === 'image') {
+                  return (
+                    <div className="flex justify-center">
+                      <div className="relative" style={{ width: '180mm', minHeight: '267mm', margin: '0 auto' }}>
+                        {content.backgroundImage && (
+                          <img src={content.backgroundImage} alt="Certificate background" className="w-full h-full object-contain rounded-lg" />
+                        )}
+                        {content.placeholders?.map((placeholder: ImagePlaceholder) => (
+                          <div key={placeholder.id} className="absolute" style={{
+                            left: `${placeholder.x}px`,
+                            top: `${placeholder.y}px`,
+                            width: `${placeholder.width}px`,
+                            height: `${placeholder.height}px`,
+                            fontSize: `${placeholder.fontSize}px`,
+                            fontFamily: placeholder.fontFamily,
+                            color: placeholder.color,
+                            fontWeight: placeholder.fontWeight,
+                            textAlign: placeholder.textAlign,
+                            transform: `rotate(${placeholder.rotation}deg)`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: placeholder.textAlign === 'center' ? 'center' : placeholder.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                            lineHeight: '1.2'
+                          }}>
+                            {placeholder.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div dangerouslySetInnerHTML={{ __html: content as string }} style={{ width: '180mm', minHeight: '267mm', margin: '0 auto' }} />
+                  );
+                }
+              })()}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Participants List */}
       {selectedEventId && (

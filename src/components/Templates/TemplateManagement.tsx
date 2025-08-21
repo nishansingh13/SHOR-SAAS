@@ -4,11 +4,12 @@ import ImageCertificateEditor, { type ImageTemplatePayload, type Placeholder } f
 import { Plus, Edit3, Trash2, BookTemplate as FileTemplate, Eye, Code, Image, FileText } from 'lucide-react';
 
 const TemplateManagement: React.FC = () => {
-  const { templates, createTemplate, deleteTemplate, selectTemplate, updateTemplate } = useTemplates();
+  const { templates, createTemplate, deleteTemplate, updateTemplate } = useTemplates();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<import('../../contexts/TemplateContext').Template | null>(null);
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [editingImageTemplate, setEditingImageTemplate] = useState<import('../../contexts/TemplateContext').Template | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [creatingHtml, setCreatingHtml] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
   const [formData, setFormData] = useState({
@@ -40,10 +41,18 @@ const TemplateManagement: React.FC = () => {
     const placeholders = extractPlaceholders(formData.content);
     setCreatingHtml(true);
     try {
-      await createTemplate({
-        ...formData,
-        placeholders
-      });
+      if (editingTemplateId) {
+        await updateTemplate(editingTemplateId, {
+          ...formData,
+          placeholders
+        });
+        setEditingTemplateId(null);
+      } else {
+        await createTemplate({
+          ...formData,
+          placeholders
+        });
+      }
       setFormData({ name: '', type: 'html', content: '' });
       setShowCreateModal(false);
     } finally {
@@ -77,7 +86,15 @@ const TemplateManagement: React.FC = () => {
   };
 
   const handleCreateNew = () => {
+    setEditingTemplateId(null);
     setFormData({ name: '', type: 'html', content: defaultHtmlTemplate });
+    setShowCreateModal(true);
+  };
+
+  const handleEditTemplate = (template: import('../../contexts/TemplateContext').Template) => {
+    // Prefill the create modal for editing
+    setEditingTemplateId(template.id);
+    setFormData({ name: template.name, type: template.type, content: template.content });
     setShowCreateModal(true);
   };
 
@@ -173,7 +190,7 @@ const TemplateManagement: React.FC = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => selectTemplate(template)}
+                      onClick={() => handleEditTemplate(template)}
                       className="p-2 text-gray-400 hover:text-emerald-600 transition-colors duration-200"
                     >
                       <Edit3 className="h-4 w-4" />

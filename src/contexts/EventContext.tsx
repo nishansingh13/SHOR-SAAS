@@ -1,18 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
-
+  
 export interface Event {
   id: string;
   name: string;
   description: string;
   date: string;
-  status: 'active' | 'draft' | 'completed';
+  status: 'active' | 'draft' | 'completed' | 'pending';
   participantCount: number;
   certificatesGenerated: number;
   createdAt: string;
   organizer: string;
-  // Additional fields that come from backend
   image?: string;
   venue?: string;
   time?: string;
@@ -71,6 +70,7 @@ interface BackendEvent {
   createdAt?: string | Date;
   organizer?: string;
   organiserId?: string;
+  status?: string;
 }
 
 const mapBackendToEvent = (e: BackendEvent): Event => ({
@@ -78,7 +78,12 @@ const mapBackendToEvent = (e: BackendEvent): Event => ({
   name: e.title ?? e.name ?? 'Untitled',
   description: e.description ?? '',
   date: e.date ? new Date(e.date).toISOString() : new Date().toISOString(),
-  status: 'active',
+  // Prefer backend-provided status when available and valid, otherwise default to 'pending'
+  status: ((): Event['status'] => {
+    const s = e.status ?? e['status'];
+    if (s === 'active' || s === 'draft' || s === 'completed' || s === 'pending') return s as Event['status'];
+    return 'pending';
+  })(),
   participantCount: e.participantCount ?? 0,
   certificatesGenerated: e.certificatesGenerated ?? 0,
   createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString(),

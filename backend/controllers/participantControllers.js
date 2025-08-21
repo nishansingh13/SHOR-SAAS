@@ -7,7 +7,8 @@ export const createParticipation = async (req, res) => {
     if (!eventId || !name || !email || !ticketName) {
       return res.status(400).json({ error: 'eventId, name, email, ticketName are required' });
     }
-
+    const participant = await ParticipantModel.findOne({ email, event: eventId });
+    if(participant) return res.status(400).json({ error: 'Participant already exists' });
     const event = await EventModel.findById(eventId);
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
@@ -78,11 +79,9 @@ export const getAllParticipants = async (req, res) => {
       const events = await EventModel.find({ organiserId: req.user.userId }).select('_id');
       const eventIds = events.map(e => e._id);
       const list = await ParticipantModel.find({ event: { $in: eventIds } }).sort({ createdAt: -1 });
-      console.log(`Returning ${list.length} participants for organizer ${req.user.userId}`);
       return res.json(list);
     } else {
       const list = await ParticipantModel.find({}).sort({ createdAt: -1 });
-      console.log(`Returning ${list.length} participants across all events`);
       return res.json(list);
     }
   } catch (err) {

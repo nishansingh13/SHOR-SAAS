@@ -33,13 +33,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const verifySession = async () => {
+      const savedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (savedUser && token) {
+        try {
+          // Verify token with the backend
+          const res = await fetch(`${API_BASE}/auth/verify`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (res.ok) {
+            setUser(JSON.parse(savedUser));
+          } else {
+            // If token is invalid, clear the stored data
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+          }
+        } catch (error) {
+          console.error('Error verifying session:', error);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+        }
+      }
+      setLoading(false);
+    };
+
+    verifySession();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {

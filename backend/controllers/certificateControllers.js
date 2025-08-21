@@ -41,7 +41,6 @@ const getCertificatesByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { userId } = req.user;
-    console.log(userId);
 
     if (!eventId) {
       return res.status(400).json({
@@ -106,7 +105,6 @@ const getAllCertificates = async (req, res) => {
     const filter = { ...baseFilter, ...roleFilter };
     const certificates = await CertificateModel.find(filter);
     
-    console.log(`Fetched ${certificates.length} certificates${eventId ? ` for event ${eventId}` : ''}`);
     
     return res.status(200).json(certificates);
   } catch (error) {
@@ -263,7 +261,6 @@ const sendCertificateEmail = async (req, res) => {
     certificate.emailSentAt = new Date();
     await certificate.save();
     
-    console.log(`Certificate ${certificate.certificateNumber} marked as sent to ${email}`);
     
     return res.status(200).json({
       success: true,
@@ -337,7 +334,6 @@ const fillCertificateInfo = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Participant not found' });
     }
 
-    console.log(`Certificate ${certificate._id} added to participant ${participant._id}`);
     return res.status(200).json({ success: true, participant });
   } catch (err) {
     console.error('Error filling certificate info:', err);

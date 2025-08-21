@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AdminProvider } from './contexts/AdminContext';
 import { EventProvider } from './contexts/EventContext';
 import { TemplateProvider } from './contexts/TemplateContext';
 import { ParticipantProvider } from './contexts/ParticipantContext';
@@ -11,6 +12,7 @@ import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import EventManagement from './components/Events/EventManagement';
 import TemplateManagement from './components/Templates/TemplateManagement';
+import AdminApproval from './components/Admin/AdminApproval';
 import ParticipantManagement from './components/Participants/ParticipantManagement';
 
 import EmailDistribution from './components/Email/EmailDistribution';
@@ -27,8 +29,13 @@ type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certif
 
 // Protected route component that requires authentication
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for authentication to finish loading before making a decision
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   if (!user) {  
     // Redirect to login if not authenticated, but remember the page they tried to access
@@ -79,6 +86,7 @@ const AdminLayout = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/events" element={<EventManagement />} />
               <Route path="/templates" element={<TemplateManagement />} />
+              <Route path="/approvals" element={<AdminApproval />} />
               <Route path="/participants" element={<ParticipantManagement />} />
               <Route path="/certificates" element={<CertificateGeneration />} />
               <Route path="/email" element={<EmailDistribution />} />
@@ -96,6 +104,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AdminProvider>
         <EventProvider>
           <TemplateProvider>
             <ParticipantProvider>
@@ -121,6 +130,7 @@ function App() {
             </ParticipantProvider>
           </TemplateProvider>
         </EventProvider>
+        </AdminProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -19,6 +19,7 @@ export interface Events extends Document{
     participantCount: number, // New field to track total participants registered
     isTshirtAvailable : boolean,
     organiserId: Schema.Types.ObjectId
+    status : "active" | "completed" | "pending"
 }
 
 const ticketSchema : Schema<ticketInterface> = new Schema<ticketInterface>({
@@ -88,6 +89,11 @@ const eventSchema : Schema<Events> = new Schema<Events>({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
+    },
+    status : {
+        type: String,
+        enum: ["active", "completed", "pending"],
+        default: "pending"
     }
 },{timestamps: true});
 

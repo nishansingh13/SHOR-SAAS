@@ -64,12 +64,18 @@ const eventSchema = new Schema(
       required: true,
       default: true,
     },
+     status : {
+      type: String,
+      enum: ["pending", "active", "rejected"],
+      default: "pending"
+  },
      organiserId:{
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true
         }
   },
+ 
   { timestamps: true }
 );
 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -344,14 +344,8 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const registerParticipant = useCallback(async (data: ParticipantRegistrationData) => {
     try {
-      console.log('Registering participant with data:', data);
-      
-      // Make API call to register participant
+
       const response = await axios.post(`${API_BASE}/participations`, data);
-      
-      console.log('Registration API response:', response.data);
-      
-      // After successful registration, refresh participants for this event
       await loadParticipants(data.eventId);
       
       return { 
@@ -361,9 +355,10 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       };
     } catch (error) {
       console.error('Registration failed:', error);
+
       return { 
         success: false, 
-        message: error instanceof Error ? error.message : 'Registration failed' 
+        message: error instanceof AxiosError ? error?.response?.data.error : 'Registration failed' 
       };
     }
   }, [loadParticipants]);

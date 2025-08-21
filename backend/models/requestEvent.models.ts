@@ -1,0 +1,96 @@
+import mongoose, { Schema } from "mongoose";
+
+export interface ticketInterface{
+    name : string,
+    price: number,
+    _id : Schema.Types.ObjectId
+}
+
+export interface RequestEvent extends Document{
+    title: string,
+    description: string,
+    image: string,
+    date : Date,
+    venue: string,
+    time: string,
+    ticket: [ticketInterface],
+    volunteerCount: number,
+    volunteersApplied: number,
+    participantCount: number,
+    isTshirtAvailable : boolean,
+    organiserId: Schema.Types.ObjectId
+}
+
+const ticketSchema : Schema<ticketInterface> = new Schema<ticketInterface>({
+    name: {
+        type: String,
+        required: true,
+        trim: true,
+        uppercase: true
+    },
+    price: {
+        type: Number,
+        required: true,
+    }
+});
+
+const requestEventSchema : Schema<RequestEvent> = new Schema<RequestEvent>({
+    title: {
+        type: String,
+        trim: true,
+        required: [true, "Please enter a title for this event"],
+        unique: true
+    },
+    description: {
+        type: String,
+        trim: true,
+        required: [true, "Please enter a description for this event"]
+    },
+    image: {
+        type: String,
+        required: [true, "Please enter a image for this event"]
+    },
+    date: {
+        type: Date,
+        required: [true, "Please enter a date for this event"]
+    },
+    venue: {
+        type: String,
+        required: [true, "Please enter a venue for this event"]
+    },
+    time: {
+        type: String,
+        trim: true,
+        required: [true, "Please enter a time for this event"]
+    },
+    ticket: [{
+        type: ticketSchema,
+        required: true
+    }],
+    volunteerCount: {
+        type: Number,
+        required: true,
+    },
+    volunteersApplied: {
+        type: Number,
+        default: 0
+    },
+    participantCount: {
+        type: Number,
+        default: 0 
+    },
+    isTshirtAvailable: {
+        type: Boolean,
+        required: true,
+        default: true
+    },
+    organiserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    }
+},{timestamps: true});
+
+const RequestEventModel = (mongoose.models.RequestEvent as mongoose.Model<RequestEvent>) || mongoose.model<RequestEvent>("RequestEvent", requestEventSchema);
+export default RequestEventModel;
+export const runtime = "nodejs";

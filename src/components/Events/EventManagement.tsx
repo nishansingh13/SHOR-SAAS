@@ -150,7 +150,11 @@ const EventManagement: React.FC = () => {
   };
 
   const getStatusIcon = (status: string) => {
+      console.log(status);
     switch (status) {
+    
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-600" />;
       case 'active':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'draft':

@@ -24,6 +24,26 @@ const ensureDemoUsers = async () => {
   if (ops.length) await Promise.all(ops);
 };
 
+export const verify = async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.user.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    return res.json({
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      }
+    });
+  } catch (err) {
+    console.error('Verification error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body || {};

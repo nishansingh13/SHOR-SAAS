@@ -8,16 +8,19 @@ const server = "http://localhost:3000";
 const EmailContext = createContext<EmailContextType | null>(null);
 const EmailProvider:React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const updateEmailStatus = async (email:string,eventId:string)=>{
-        try{
+        try {
             const res = await axios.put(`${server}/api/emails/status`,{
                 email,
                 eventId
-            })
+            });
             if(res.status === 200){
                 console.log("Email status updated successfully");
+                return res.data;
             }
         } catch (error) {
             console.error("Error updating email status:", error);
+            // Re-throw the error so the caller can handle it
+            throw error;
         }
     }
 const refreshEmails = async () => {
