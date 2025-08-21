@@ -21,6 +21,7 @@
     "jspdf": "^3.0.1",
     "lucide-react": "^0.344.0",
     "mongoose": "^8.17.1",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "nodemon": "^3.1.10",
     "puppeteer": "^24.16.2",

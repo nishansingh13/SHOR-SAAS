@@ -98,7 +98,7 @@ const CertificateGeneration: React.FC = () => {
           text: p.name === 'participant_name' ? participant.name :
                 p.name === 'event_name' ? (event?.name || '') :
                 p.name === 'event_date' ? (event?.date ? new Date(event.date).toLocaleDateString() : '') :
-                p.name === 'certificate_id' ? (participant.certificateId || 'CERT-PREVIEW') :
+                p.name === 'certificate_id' ? (participant.id || 'CERT-PREVIEW') :
                 p.name === 'organizer_name' ? (event?.organizer || '') :
                 p.name === 'completion_date' ? new Date().toLocaleDateString() :
                 p.name === 'event_description' ? (event?.description || '') :
@@ -111,7 +111,7 @@ const CertificateGeneration: React.FC = () => {
         .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
         .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
         .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
-        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || 'CERT-PREVIEW')
+        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.id || 'CERT-PREVIEW')
         .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '');
     }
   };
@@ -153,7 +153,6 @@ const CertificateGeneration: React.FC = () => {
       // First show preview if not already showing
       if (!previewParticipant) {
         handlePreview(participant);
-        // Wait for preview to render
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
@@ -236,7 +235,7 @@ const CertificateGeneration: React.FC = () => {
     }
 
     try {
-      const result = await sendEmail(participant.certificateId, participant.email);
+      const result = await sendEmail(participant.id, participant.email);
       if (result) {
         alert(`Certificate sent successfully to ${participant.email}`);
       } else {
@@ -429,9 +428,9 @@ const CertificateGeneration: React.FC = () => {
                       <span className="text-sm text-gray-500">
                         {/* show certificate number if available, fallback to id */}
                         {(() => {
-                          if (!participant.certificateId) return '-';
-                          const cert = certificates.find(c => c.id === participant.certificateId);
-                          return cert?.certificateNumber || participant.certificateId || '-';
+                          if (!participant.id) return '-';
+                          const cert = certificates.find(c => c.id === participant.id);
+                          return cert?.certificateNumber || participant.id || '-';
                         })()}
                       </span>
                     </td>

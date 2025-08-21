@@ -19,21 +19,22 @@ const TemplateManagement: React.FC = () => {
   });
 
   const defaultHtmlTemplate = `
-<div style="width: 800px; height: 600px; border: 4px solid #2563EB; padding: 40px; font-family: serif; text-align: center; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
-  <h1 style="color: #2563EB; font-size: 48px; margin-bottom: 20px;">Certificate of Achievement</h1>
-  <div style="width: 100px; height: 4px; background: #2563EB; margin: 20px auto;"></div>
-  <p style="font-size: 18px; margin: 30px 0;">This is to certify that</p>
-  <h2 style="color: #1e40af; font-size: 36px; margin: 20px 0; text-decoration: underline;">{{ participant_name }}</h2>
-  <p style="font-size: 18px; margin: 30px 0;">has successfully completed</p>
-  <h3 style="color: #2563EB; font-size: 24px; margin: 20px 0;">{{ event_name }}</h3>
-  <p style="font-size: 16px; margin: 30px 0;">on {{ event_date }}</p>
-  <div style="margin-top: 60px;">
-    <div style="display: inline-block; width: 200px; border-top: 2px solid #2563EB; text-align: center; padding-top: 10px;">
+<div style="width: 700px; height: 500px; border: 4px solid #2563EB; padding: 25px; font-family: serif; text-align: center; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); margin-right: 200px; position: relative;">
+  <h1 style="color: #2563EB; font-size: 36px; margin-bottom: 15px;">Certificate of Achievement</h1>
+  <div style="width: 120px; height: 4px; background: #2563EB; margin: 15px auto;"></div>
+  <p style="font-size: 16px; margin: 15px 0;">This is to certify that</p>
+  <h2 style="color: #1e40af; font-size: 28px; margin: 15px 0; text-decoration: underline;">{{ participant_name }}</h2>
+  <p style="font-size: 16px; margin: 15px 0;">has successfully completed</p>
+  <h3 style="color: #2563EB; font-size: 22px; margin: 15px 0;">{{ event_name }}</h3>
+  <p style="font-size: 14px; margin: 15px 0;">on {{ event_date }}</p>
+  <div style="margin-top: 40px;">
+    <div style="display: inline-block; width: 180px; border-top: 2px solid #2563EB; text-align: center; padding-top: 10px;">
       <p style="font-size: 14px; margin: 0;">Authorized Signature</p>
     </div>
   </div>
-  <p style="position: absolute; bottom: 20px; right: 20px; font-size: 12px; color: #64748b;">Certificate ID: {{ certificate_id }}</p>
+  <p style="position: absolute; bottom: 15px; right: 15px; font-size: 12px; color: #64748b;">Certificate ID: {{ certificate_id }}</p>
 </div>
+
   `;
 
   const handleSubmit = async (e: React.FormEvent) => {

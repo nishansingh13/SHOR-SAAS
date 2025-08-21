@@ -114,7 +114,7 @@ const Merged: React.FC = () => {
           text: p.name === 'participant_name' ? participant.name :
                 p.name === 'event_name' ? (event?.name || '') :
                 p.name === 'event_date' ? (event?.date ? new Date(event.date).toLocaleDateString() : '') :
-                p.name === 'certificate_id' ? (participant.certificateId || 'CERT-PREVIEW') :
+                p.name === 'certificate_id' ? (participant.id || 'CERT-PREVIEW') :
                 p.name === 'organizer_name' ? (event?.organizer || '') :
                 p.name === 'completion_date' ? new Date().toLocaleDateString() :
                 p.name === 'event_description' ? (event?.description || '') :
@@ -126,7 +126,7 @@ const Merged: React.FC = () => {
         .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
         .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
         .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
-        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || 'CERT-PREVIEW')
+        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.id || 'CERT-PREVIEW')
         .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '');
     }
   };
@@ -324,7 +324,7 @@ const Merged: React.FC = () => {
           .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
           .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
           .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
-          .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || '')
+          .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.id || '')
           .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '');
 
         const subject = emailTemplate.subject
@@ -424,7 +424,7 @@ const Merged: React.FC = () => {
         .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
         .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
         .replace(/\{\{\s*event_date\s*\}\}/g, event?.date ? new Date(event.date).toLocaleDateString() : '')
-        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.certificateId || '')
+        .replace(/\{\{\s*certificate_id\s*\}\}/g, participant.id || '')
         .replace(/\{\{\s*organizer_name\s*\}\}/g, event?.organizer || '');
 
       const subject = emailTemplate.subject
@@ -819,9 +819,9 @@ const Merged: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-500">
                         {(() => {
-                          if (!participant.certificateId) return '-';
-                          const cert = certificates.find(c => c.id === participant.certificateId);
-                          return cert?.certificateNumber || participant.certificateId || '-';
+                          if (!participant.id) return '-';
+                          const cert = certificates.find(c => c.id === participant.id);
+                          return cert?.certificateNumber || participant.id || '-';
                         })()}
                       </span>
                     </td>
