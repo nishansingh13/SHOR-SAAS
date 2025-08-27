@@ -18,9 +18,11 @@ const EventManagement: React.FC = () => {
   const { events, createEvent, updateEvent, deleteEvent, refreshEvents, getRawEventById } = useEvents();
   const { user } = useAuth();
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_EVENT_IMAGE || '';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
   const [error, setError] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -38,17 +40,27 @@ const EventManagement: React.FC = () => {
 
     setError('');
 
+    if (uploading) {
+      setError('Please wait for the image upload to finish');
+      return;
+    }
+
+    if (!formData.image && !FALLBACK_IMAGE) {
+      setError('Please upload an image for the event');
+      return;
+    }
+
     const payload = {
       title: formData.title,
       description: formData.description,
-      image: formData.image,
+  image: formData.image || FALLBACK_IMAGE,
       date: formData.date,
       venue: formData.venue,
       time: formData.time,
       ticket: formData.ticket,
       volunteerCount: formData.volunteerCount,
       isTshirtAvailable: formData.isTshirtAvailable,
-      organiserId: user?.id // Add the organiser ID from the logged-in user
+      organiserId: user?.id 
     };
 
     if (editingEvent) {
@@ -105,6 +117,53 @@ const EventManagement: React.FC = () => {
     });
     setShowCreateModal(false);
   };
+
+  const CLOUDINARY_CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const CLOUDINARY_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  const handleFileChange = async (file?: File | null) => {
+    if (!file) return;
+    if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) {
+      setError('Cloudinary not configured. Set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.');
+      return;
+    }
+
+    try {
+      setError('');
+      setUploading(true);
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', CLOUDINARY_PRESET);
+
+      // Use fetch; Cloudinary supports unsigned uploads with upload_preset
+      const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`;
+      const res = await fetch(url, {
+        method: 'POST',
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Upload failed: ${res.status} ${txt}`);
+      }
+
+      const json = await res.json();
+      // Cloudinary returns secure_url (prefer) and url
+      const imageUrl = json.secure_url || json.url || '';
+      console.log(imageUrl);
+      if (!imageUrl) throw new Error('No URL returned from Cloudinary');
+
+  setFormData((prev) => ({ ...prev, image: imageUrl }));
+    } catch (err: unknown) {
+      console.error('Cloudinary upload error', err);
+      const message = typeof err === 'string' ? err : (err instanceof Error ? err.message : 'Upload failed');
+      setError(message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
 
   const handleEdit = (event: AppEvent) => {
     setEditingEvent(event);
@@ -186,6 +245,7 @@ const EventManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Event Management</h1>
@@ -307,16 +367,29 @@ const EventManagement: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL
+                    Event Image
                   </label>
-                  <input
-                    type="url"
-                    required
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://..."
-                  />
+                  <div className="mt-1 flex items-center space-x-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                      className="text-sm text-gray-600"
+                      aria-label="Upload event image"
+                    />
+                    {uploading && (
+                      <div className="text-sm text-gray-600">Uploading...</div>
+                    )}
+                  </div>
+
+                  {(formData.image || FALLBACK_IMAGE) ? (
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-500 mb-1">Preview</p>
+                      <img src={formData.image || FALLBACK_IMAGE} alt="event" className="h-28 w-full object-cover rounded" />
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-gray-500">Please upload an image for this event.</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

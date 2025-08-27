@@ -13,6 +13,7 @@ import {
   FileText,
   Image as ImageIcon,
   CheckCircle,
+
   AlertTriangle,
   Mail
 } from 'lucide-react';

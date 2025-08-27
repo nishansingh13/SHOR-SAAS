@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 export interface Template {
   id: string;
@@ -64,6 +65,8 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
+  const { loading: authLoading, logout } = useAuth();
+
   const refreshTemplates = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -73,7 +76,16 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
       const res = await fetch(`${API_BASE}/templates`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch templates');
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Token invalid/expired — clear auth on client
+          console.warn('Templates fetch unauthorized (401), clearing session');
+          logout();
+          setTemplates([]);
+          return;
+        }
+        throw new Error('Failed to fetch templates');
+      }
       const data: BackendTemplate[] = await res.json();
       setTemplates(Array.isArray(data) ? data.map(mapBackendToTemplate) : []);
     } catch (err) {
@@ -81,14 +93,19 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Wait for auth verification to finish before attempting to load templates.
+  // This avoids a race where TemplateProvider mounts before AuthProvider has stored the
+  // token in localStorage, causing an intermittent "auth failed" until a manual refresh.
   useEffect(() => {
+    if (authLoading) return; // still verifying session
+
     const token = localStorage.getItem('token');
     if (token) {
       refreshTemplates();
     } else {
       setTemplates([]);
     }
-  }, []);
+  }, [authLoading]);
 
   const createTemplate = async (templateData: Omit<Template, 'id' | 'createdAt' | 'lastModified'>) => {
     try {

@@ -49,7 +49,7 @@ const eventSchema : Schema<Events> = new Schema<Events>({
     },
     image: {
         type: String,
-        required: [true, "Please enter a image for this event"]
+        default:"https://res.cloudinary.com/dqsx8yzbs/image/upload/v1756042925/ok_d3bptd.jpg",
     },
     date: {
         type: Date,

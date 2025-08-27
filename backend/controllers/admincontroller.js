@@ -10,7 +10,7 @@ export const approveOrganizer = async (req, res) => {
     if(!OrganizerRequest){
       return res.status(404).json({error: "Organizer request not found"});
     }
-    await RequestFromAdmin.findByIdAndUpdate(id,{$set : {status: "approved"}});
+    await RequestFromAdmin.findByIdAndUpdate(id,{$set : {status: "active"}});
     const hashedPassword =  await bcrypt.hash(OrganizerRequest.password, 10);
    const userModel = await UserModel.create({
       email : OrganizerRequest.email,
