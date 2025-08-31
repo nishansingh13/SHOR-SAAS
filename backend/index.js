@@ -11,7 +11,7 @@ import sendMail from './mailingSystem/sendMail.js';
 import emailRoutes from './routes/emailRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-
+import createOrder from './paymentIntegration/createOrder.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
@@ -35,6 +35,7 @@ app.use('/api/mail',sendMail);
 app.use('/api/emails', emailRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/orders',createOrder);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

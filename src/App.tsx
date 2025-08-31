@@ -24,6 +24,7 @@ import Merged from './components/Merged/Merged';
 import EmailProvider from './contexts/EmailContext';
 import LandingPage from './components/Landing/LandingPage';
 import EventLocationPicker from './components/Events/LocationTracker';
+import RazorpayButton from './components/Payment/Razorpay';
 
 // Type defining all valid routes in the app
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
@@ -93,7 +94,7 @@ const AdminLayout = () => {
               <Route path="/email" element={<EmailDistribution />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/others" element={<Merged/>}/>
-              <Route path ='/some' element={<EventLocationPicker />} />
+              <Route path ='/some' element={<RazorpayButton />} />
             </Routes>
           </div>
         </main>

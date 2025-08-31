@@ -3,6 +3,7 @@ import React , { createContext, useContext, useMemo } from 'react';
 
 interface EmailContextType{ 
     updateEmailStatus : (email: string, eventId: string) => void;
+    sendEventApprovedNotificationMail: (to: string, subject: string, content: string) => Promise<void>;
 }
 const server = "http://localhost:3000";
 const EmailContext = createContext<EmailContextType | null>(null);
@@ -33,10 +34,27 @@ const refreshEmails = async () => {
         console.error("Error refreshing emails:", error);
     }
 };
+const sendEventApprovedNotificationMail = async(to : string , subject : string ,content : string) =>{
+        try{
+            const res = await axios.post(`${server}/api/mail`,{
+                email:to,
+                subject,
+                content
+            });
+            if(res.status === 200){
+                console.log("Email sent successfully");
+                return res.data;
+            }
+        } catch (error) {
+            console.error("Error sending email:", error);
+            throw error;
+        }
+}
  const value = useMemo(
     () => ({
       updateEmailStatus,
       refreshEmails,
+      sendEventApprovedNotificationMail
     }),
     [] 
   );

@@ -12,6 +12,7 @@ const transporter = nodemailer.createTransport({
 })
 router.post('/',(req,res)=>{
     const {email, subject, content, attachments} = req.body;
+    console.log("email:",email);
     const mailOptions = {
         from: "nishansingh2480@gmail.com",
         to: email,

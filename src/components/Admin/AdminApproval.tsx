@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import useAdmin from '../../contexts/useAdmin';
+import { useEmail } from '../../contexts/EmailContext';
 
 type RequestFromAdmin = {
   _id?: string;
-  id?: string;
+  id: string;
   email: string;
   name: string;
   GSTIN?: string;
@@ -21,6 +22,7 @@ const AdminApproval: React.FC = () => {
   const [organizers, setOrganizers] = useState<RequestFromAdmin[]>([]);
   const [events, setEvents] = useState<unknown[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const {sendEventApprovedNotificationMail} = useEmail();
 
   useEffect(() => {
   const load = async () => {
@@ -49,6 +51,13 @@ const AdminApproval: React.FC = () => {
     await approveEvent(id)
       .then(() => {
         setEvents(prev => prev.filter(e => (e as EventRecord)._id !== id));
+      })
+      .then(async ()=>{
+        const emailData = {
+          subject: 'Your event has been approved',
+          content: 'You can now create certificates for this event.'
+        };
+        await sendEventApprovedNotificationMail(user?.email ?? '', emailData.subject, emailData.content);
       })
       .catch(err => {
         console.error('Failed to approve event', err);

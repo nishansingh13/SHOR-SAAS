@@ -418,7 +418,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }, eventId);
       
       // Rethrow with better error message
-      throw new Error(`Failed to send email: ${errorMessage}`);
+      throw new Error(`Failed to send email: ${errorMessage}`);f
     }
   }, [updateParticipant, getEmailById]);
 
