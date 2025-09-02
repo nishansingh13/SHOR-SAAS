@@ -43,10 +43,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
     <div className="flex flex-col h-full bg-white">
       {/* Logo */}
       <div className="flex items-center px-6 py-4 border-b border-gray-200">
-        <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+        <div className="h-8 w-8 bg-gradient-to-r from-emerald-600 to-blue-700 rounded-lg flex items-center justify-center">
           <LogoIcon className="h-5 w-5 text-white" />
         </div>
-        <span className="ml-2 text-xl font-bold text-gray-900">CertGen</span>
+        <span className="ml-2 text-xl font-bold text-gray-900">SETU</span>
       </div>
 
       {/* Navigation */}
@@ -62,12 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
               className={`
                 w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
                 ${isActive
-                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border-r-2 border-blue-600'
+                  ? 'bg-gradient-to-r from-emerald-50 to-blue-50 text-emerald-700 border-r-2 border-emerald-600'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }
               `}
             >
-              <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+              <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
               {item.label}
             </button>
           );
@@ -77,9 +77,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
       {/* User Info */}
       <div className="px-4 py-4 border-t border-gray-200">
         <div className="flex items-center">
-          <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="h-8 w-8 bg-gradient-to-r from-emerald-600 to-blue-700 rounded-full flex items-center justify-center">
             <span className="text-sm font-medium text-white">
-              {(user?.name?.charAt(0)?.toUpperCase()) || 'G'}
+              {(user?.name?.charAt(0)?.toUpperCase()) || 'S'}
             </span>
           </div>
           <div className="ml-3 flex-1 min-w-0">

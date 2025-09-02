@@ -23,15 +23,15 @@ import CertificateGeneration from './components/Certificates/CertificateGenerati
 import Merged from './components/Merged/Merged';
 import EmailProvider from './contexts/EmailContext';
 import LandingPage from './components/Landing/LandingPage';
-import EventLocationPicker from './components/Events/LocationTracker';
 import RazorpayButton from './components/Payment/Razorpay';
 
 // Type defining all valid routes in the app
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
 
 // Protected route component that requires authentication
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ( { children, role }: { role:string,children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  console.log(user?.role==role);
   const location = useLocation();
 
   // Wait for authentication to finish loading before making a decision
@@ -122,7 +122,7 @@ function App() {
                   <Route 
                     path="/*" 
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute role="admin">
                         <AdminLayout />
                         </ProtectedRoute>
                     } 

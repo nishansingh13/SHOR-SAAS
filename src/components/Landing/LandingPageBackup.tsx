@@ -5,14 +5,36 @@ import { motion } from 'framer-motion';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Simple Background Component (removed particles for better performance)
-const SimpleBackground: React.FC = () => {
-  return (
-    <div className="absolute inset-0 -z-10">
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl opacity-60"></div>
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl opacity-60"></div>
-    </div>
-  );
+// Particle Background Component
+const ParticleBackground: React.FC = () => {
+  useEffect(() => {
+    const createParticle = () => {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.width = Math.random() * 4 + 2 + 'px';
+      particle.style.height = particle.style.width;
+      particle.style.animationDelay = Math.random() * 15 + 's';
+      particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+      
+      const container = document.querySelector('.particles-bg');
+      if (container) {
+        container.appendChild(particle);
+        
+        // Remove particle after animation
+        setTimeout(() => {
+          if (particle.parentNode) {
+            particle.parentNode.removeChild(particle);
+          }
+        }, 15000);
+      }
+    };
+
+    const interval = setInterval(createParticle, 300);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div className="particles-bg" />;
 };
 
 const GradientText: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -20,6 +42,11 @@ const GradientText: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 );
 
 // Animation variants
+const fadeInUp = {
+  initial: { opacity: 0, y: 60 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, ease: "easeOut" }
+};
 
 const staggerContainer = {
   animate: {
@@ -150,7 +177,7 @@ const LandingPage: React.FC = () => {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <SimpleBackground />
+        <ParticleBackground />
         <div className="absolute inset-0 -z-10">
           <motion.div 
             className="absolute top-0 left-1/4 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl"
@@ -224,7 +251,7 @@ const LandingPage: React.FC = () => {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Link
                   to="/participate"
-                  className="inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-700 px-8 py-4 text-lg font-semibold text-white shadow-xl hover:shadow-2xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 transform hover:-translate-y-1"
+                  className="inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-700 px-8 py-4 text-lg font-semibold text-white shadow-xl hover:shadow-2xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 transform hover:-translate-y-1 button-shine animate-pulse-glow"
                 >
                   <motion.span
                     whileHover={{ rotate: 360 }}
@@ -232,7 +259,12 @@ const LandingPage: React.FC = () => {
                   >
                     Start Your Journey
                   </motion.span>
-                  <ArrowRight className="h-5 w-5" />
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </motion.div>
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -316,10 +348,15 @@ const LandingPage: React.FC = () => {
               initial={{ rotate: 2, scale: 0.9 }}
               animate={{ 
                 rotate: 2, 
-                scale: 1
+                scale: 1,
+                y: [-10, 10, -10]
               }}
-              whileHover={{ rotate: 0, scale: 1.02 }}
-              transition={{ duration: 0.5 }}
+              whileHover={{ rotate: 0, scale: 1.02, y: 0 }}
+              transition={{ 
+                rotate: { duration: 0.5 },
+                scale: { duration: 0.5 },
+                y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+              }}
             >
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-600/5 to-blue-700/5" />
               <div className="relative">

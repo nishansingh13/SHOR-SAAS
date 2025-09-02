@@ -109,3 +109,34 @@ export const getParticipantById = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// Check if participant already exists for an event (to prevent duplicate registrations)
+export const checkDuplicateParticipant = async (req, res) => {
+  try {
+    const { email, eventId } = req.body;
+    
+    if (!email || !eventId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and eventId are required' 
+      });
+    }
+
+    const existingParticipant = await ParticipantModel.findOne({ 
+      email: String(email).toLowerCase(), 
+      event: eventId 
+    });
+
+    return res.json({
+      success: true,
+      exists: !!existingParticipant,
+      participant: existingParticipant || null
+    });
+  } catch (error) {
+    console.error('checkDuplicateParticipant error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
+  }
+};

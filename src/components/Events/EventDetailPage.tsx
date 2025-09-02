@@ -1,49 +1,59 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Users, Star, Award, Calendar, Filter, Search, X, CheckCircle, CreditCard, IndianRupee, Eye } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  MapPin, 
+  Clock, 
+  Users, 
+  Star, 
+  Award, 
+  CheckCircle, 
+  CreditCard, 
+  IndianRupee,
+  UserCheck,
+  Share2,
+  X
+} from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useParticipants } from '../../contexts/ParticipantContext';
-import { useEvents } from '../../contexts/EventContext';
 import { useRazorpay } from '../../hooks/useRazorpay';
-import EventDetailPage from '../Events/EventDetailPage';
+import LocationMap from './LocationMap';
 
-interface EventItem {
-  id: string;
-  name: string;
-  description?: string;
-  image?: string;
-  date?: string;
-  venue?: string;
-  time?: string;
-  ticket?: Array<{ name: string; price: number; _id?: string }>;
-  volunteerCount?: number;
-  volunteersApplied?: number;
-  isTshirtAvailable?: boolean;
-  participantCount?: number;
-  status?: string;
+interface EventDetailProps {
+  event: {
+    id: string;
+    name: string;
+    description?: string;
+    image?: string;
+    date?: string;
+    venue?: string;
+    venueDetails?: {
+      name: string;
+      address: string;
+      city: string;
+      coordinates: { lat: number; lng: number };
+    };
+    time?: string;
+    ticket?: Array<{ name: string; price: number; _id?: string }>;
+    volunteerCount?: number;
+    volunteersApplied?: number;
+    isTshirtAvailable?: boolean;
+    participantCount?: number;
+    status?: string;
+  };
+  onBack: () => void;
 }
 
-interface FilterState {
-  searchTerm: string;
-  eventType: string;
-  isFree: boolean;
-  hasVolunteerPositions: boolean;
-}
-
-const ParticipantPortal: React.FC = () => {
-  const { registerParticipant , paymentSuccessEmail } = useParticipants();
-  const { events } = useEvents();
+const EventDetailPage: React.FC<EventDetailProps> = ({ event, onBack }) => {
+  const { registerParticipant, paymentSuccessEmail } = useParticipants();
   const { initiatePayment, loading: paymentLoading, error: paymentError, setError: setPaymentError } = useRazorpay();
   
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   
-  const [filteredEvents, setFilteredEvents] = useState<EventItem[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [isVolunteer, setIsVolunteer] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showEventDetail, setShowEventDetail] = useState(false);
-  const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   
   // Registration form state
   const [name, setName] = useState('');
@@ -52,54 +62,11 @@ const ParticipantPortal: React.FC = () => {
   const [ticketName, setTicketName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [tshirtSize, setTshirtSize] = useState('');
-  
-  const [filters, setFilters] = useState<FilterState>({
-    searchTerm: '',
-    eventType: '',
-    isFree: false,
-    hasVolunteerPositions: false
-  });
 
-  const applyFilters = useCallback(() => {
-    let filtered = events.filter((event) => 
-      event.status === 'active' &&
-      event.name.toLowerCase().includes(filters.searchTerm.toLowerCase())
-    );
-
-    if (filters.isFree) {
-      filtered = filtered.filter((event) => 
-        event.ticket && event.ticket.some((t) => t.price === 0)
-      );
-    }
-
-    if (filters.hasVolunteerPositions) {
-      filtered = filtered.filter((event) => 
-        event.volunteerCount && event.volunteerCount > 0
-      );
-    }
-
-    setFilteredEvents(filtered as EventItem[]);
-  }, [events, filters]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  const handleRegisterClick = (event: EventItem, asVolunteer: boolean = false) => {
-    setSelectedEvent(event);
+  const handleRegisterClick = (asVolunteer: boolean = false) => {
     setIsVolunteer(asVolunteer);
     setShowModal(true);
     setPaymentError(null);
-  };
-
-  const handleViewDetails = (event: EventItem) => {
-    setDetailEvent(event);
-    setShowEventDetail(true);
-  };
-
-  const handleBackFromDetail = () => {
-    setShowEventDetail(false);
-    setDetailEvent(null);
   };
 
   const resetForm = () => {
@@ -110,7 +77,6 @@ const ParticipantPortal: React.FC = () => {
     setQuantity(1);
     setTshirtSize('');
     setShowModal(false);
-    setSelectedEvent(null);
     setIsVolunteer(false);
     setPaymentError(null);
     setLoading(false);
@@ -120,7 +86,7 @@ const ParticipantPortal: React.FC = () => {
     if (!name.trim() || !email.trim() || !phone.trim()) {
       return false;
     }
-    if (!isVolunteer && (!ticketName || !selectedEvent?.ticket?.find(t => t.name === ticketName))) {
+    if (!isVolunteer && (!ticketName || !event?.ticket?.find(t => t.name === ticketName))) {
       return false;
     }
     return true;
@@ -128,11 +94,11 @@ const ParticipantPortal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm() || !selectedEvent) return;
+    if (!validateForm() || !event) return;
 
     setLoading(true);
     const baseParticipantData = {
-      eventId: selectedEvent.id,
+      eventId: event.id,
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -153,7 +119,7 @@ const ParticipantPortal: React.FC = () => {
         },
         body: JSON.stringify({
           email: baseParticipantData.email,
-          eventId: selectedEvent.id
+          eventId: event.id
         }),
       });
 
@@ -166,8 +132,8 @@ const ParticipantPortal: React.FC = () => {
         return;
       }
 
-      if (!isVolunteer && selectedEvent.ticket) {
-        const ticketPrice = selectedEvent.ticket.find(t => t.name === ticketName)?.price || 0;
+      if (!isVolunteer && event.ticket) {
+        const ticketPrice = event.ticket.find(t => t.name === ticketName)?.price || 0;
         
         if (ticketPrice > 0) {
           // Handle paid registration with Razorpay
@@ -176,14 +142,13 @@ const ParticipantPortal: React.FC = () => {
           try {
             await initiatePayment({
               amount: ticketPrice * quantity,
-              eventId: selectedEvent.id,
+              eventId: event.id,
               participantData: baseParticipantData,
               onSuccess: () => {
                 toast.dismiss('payment');
                 resetForm();
-                paymentSuccessEmail(selectedEvent.name,email);
+                paymentSuccessEmail(event.name, email);
                 toast.success('🎉 Payment successful! You have been registered for the event and confirmation email has been sent.');
-                
               },
               onFailure: (error) => {
                 toast.dismiss('payment');
@@ -200,7 +165,6 @@ const ParticipantPortal: React.FC = () => {
             setPaymentError(errorMessage);
           }
           
-          // Don't set loading to false here since it's handled in the payment hook
           return;
         } else {
           // Handle free registration
@@ -222,202 +186,281 @@ const ParticipantPortal: React.FC = () => {
     }
   };
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: event.name,
+        text: event.description,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Event link copied to clipboard!');
+    }
+  };
+
   return (
-    <>
-      {showEventDetail && detailEvent ? (
-        <EventDetailPage event={detailEvent} onBack={handleBackFromDetail} />
-      ) : (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4">
-      {/* Header */}
-      <motion.div 
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Header with Back Button */}
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white p-6"
       >
-        <div className="bg-gradient-to-r from-emerald-600 to-blue-700 rounded-xl p-8 text-white shadow-2xl">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center justify-center mb-4"
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={onBack}
+            className="flex items-center text-emerald-100 hover:text-white transition-colors mb-4"
           >
-            <Award className="h-12 w-12 mr-3" />
-            <h1 className="text-4xl font-bold">SETU Events Portal</h1>
-          </motion.div>
-          <p className="text-xl text-emerald-100">Discover and register for exciting events</p>
-        </div>
-      </motion.div>
-
-      {/* Filters */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white p-6 rounded-xl shadow-lg mb-8"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={filters.searchTerm}
-              onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-            />
-          </div>
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to Events
+          </button>
           
-          <div className="flex items-center space-x-2">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={filters.isFree}
-                onChange={(e) => setFilters(prev => ({ ...prev, isFree: e.target.checked }))}
-                className="mr-2 rounded text-emerald-600 focus:ring-emerald-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Free Events</span>
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-gray-500" />
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={filters.hasVolunteerPositions}
-                onChange={(e) => setFilters(prev => ({ ...prev, hasVolunteerPositions: e.target.checked }))}
-                className="mr-2 rounded text-emerald-600 focus:ring-emerald-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Volunteer Opportunities</span>
-            </label>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">{event.name}</h1>
+              <p className="text-emerald-100 text-lg">Detailed Event Information</p>
+            </div>
+            
+            <button
+              onClick={handleShare}
+              className="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition-colors"
+            >
+              <Share2 className="h-6 w-6" />
+            </button>
           </div>
         </div>
       </motion.div>
 
-      {/* Events Grid */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-      >
-        {filteredEvents.map((event, index) => (
-          <motion.div
-            key={event.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group"
-          >
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
             {/* Event Image */}
-            <div className="relative h-48 bg-gradient-to-br from-emerald-400 to-blue-600">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="relative h-96 bg-gradient-to-br from-emerald-400 to-blue-600 rounded-xl overflow-hidden shadow-2xl"
+            >
               {event.image ? (
                 <img 
                   src={event.image} 
                   alt={event.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Award className="h-16 w-16 text-white opacity-80" />
+                  <Award className="h-24 w-24 text-white opacity-80" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-10 transition-all duration-300" />
-            </div>
+              <div className="absolute inset-0 bg-black bg-opacity-20" />
+              
+              {/* Event Status Badge */}
+              <div className="absolute top-4 left-4">
+                <span className="bg-emerald-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Active Event
+                </span>
+              </div>
+            </motion.div>
 
-            {/* Event Content */}
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition-colors">
-                {event.name}
+            {/* Event Description */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-xl shadow-lg p-8"
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                <Award className="h-6 w-6 mr-3 text-emerald-600" />
+                About This Event
+              </h2>
+              <p className="text-gray-700 text-lg leading-relaxed">
+                {event.description || 'Join us for an exciting event that promises to be educational, engaging, and memorable. Don\'t miss out on this opportunity to learn, network, and grow!'}
+              </p>
+            </motion.div>
+
+            {/* Event Statistics */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+              <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                <Users className="h-12 w-12 text-emerald-600 mx-auto mb-3" />
+                <h3 className="text-2xl font-bold text-gray-900">{event.participantCount || 0}</h3>
+                <p className="text-gray-600">Registered Participants</p>
+              </div>
+              
+              {event.volunteerCount && event.volunteerCount > 0 && (
+                <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                  <UserCheck className="h-12 w-12 text-purple-600 mx-auto mb-3" />
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    {event.volunteersApplied || 0}/{event.volunteerCount}
+                  </h3>
+                  <p className="text-gray-600">Volunteers</p>
+                </div>
+              )}
+              
+              <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                <Star className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {event.ticket?.length || 0}
+                </h3>
+                <p className="text-gray-600">Ticket Types</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Event Details Card */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-xl shadow-lg p-6"
+            >
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <Calendar className="h-6 w-6 mr-2 text-emerald-600" />
+                Event Details
               </h3>
               
-              {event.description && (
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {event.description}
-                </p>
-              )}
-
-              {/* Event Details */}
-              <div className="space-y-2 mb-4">
+              <div className="space-y-4">
                 {event.date && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2 text-emerald-600" />
-                    {event.date}
+                  <div className="flex items-start">
+                    <Calendar className="h-5 w-5 text-emerald-600 mr-3 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-500">Date</p>
+                      <p className="font-semibold text-gray-900">{new Date(event.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {event.time && (
+                  <div className="flex items-start">
+                    <Clock className="h-5 w-5 text-emerald-600 mr-3 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-500">Time</p>
+                      <p className="font-semibold text-gray-900">{event.time}</p>
+                    </div>
                   </div>
                 )}
                 
                 {event.venue && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2 text-emerald-600" />
-                    {event.venue}
+                  <div className="flex items-start">
+                    <MapPin className="h-5 w-5 text-emerald-600 mr-3 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-500">Venue</p>
+                      <p className="font-semibold text-gray-900">{event.venue}</p>
+                    </div>
                   </div>
                 )}
                 
-                {event.participantCount !== undefined && event.participantCount > 0 && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2 text-emerald-600" />
-                    {event.participantCount} registered
-                  </div>
-                )}
-              </div>
-
-              {/* Ticket Info */}
-              {event.ticket && event.ticket.length > 0 && (
-                <div className="mb-4">
-                  <div className="text-sm font-medium text-gray-700 mb-2">Available Tickets:</div>
-                  <div className="space-y-1">
-                    {event.ticket.map((ticket, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">{ticket.name}</span>
-                        <span className="font-semibold text-emerald-700">
-                          {ticket.price === 0 ? 'Free' : `₹${ticket.price}`}
-                        </span>
-                      </div>
-                    ))}
+                <div className="flex items-start">
+                  <Users className="h-5 w-5 text-emerald-600 mr-3 mt-1" />
+                  <div>
+                    <p className="text-sm text-gray-500">Registered</p>
+                    <p className="font-semibold text-gray-900">{event.participantCount || 0} participants</p>
                   </div>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleViewDetails(event)}
-                  className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 text-white py-2 px-4 rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 transition-all duration-300 shadow-lg flex items-center justify-center"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Details
-                </motion.button>
-                
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleRegisterClick(event, false)}
-                  className="flex-1 bg-gradient-to-r from-emerald-600 to-blue-700 text-white py-2 px-4 rounded-lg font-semibold hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 shadow-lg"
-                >
-                  Register
-                </motion.button>
-                
-                {event.volunteerCount !== undefined && event.volunteerCount > 0 && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleRegisterClick(event, true)}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-800 transition-all duration-300 shadow-lg"
-                  >
-                    Volunteer
-                  </motion.button>
-                )}
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
+            </motion.div>
+
+            {/* Tickets Card */}
+            {event.ticket && event.ticket.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-xl shadow-lg p-6"
+              >
+                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                  <Star className="h-6 w-6 mr-2 text-emerald-600" />
+                  Available Tickets
+                </h3>
+                
+                <div className="space-y-3">
+                  {event.ticket.map((ticket, idx) => (
+                    <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition-colors">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{ticket.name}</h4>
+                          <p className="text-sm text-gray-500">Per person</p>
+                        </div>
+                        <div className="text-right">
+                          {ticket.price === 0 ? (
+                            <span className="text-2xl font-bold text-emerald-600">Free</span>
+                          ) : (
+                            <div className="flex items-center">
+                              <IndianRupee className="h-5 w-5 text-emerald-600" />
+                              <span className="text-2xl font-bold text-emerald-600">{ticket.price}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Location Map */}
+            {event.venue && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35 }}
+              >
+                <LocationMap venue={event.venue} venueDetails={event.venueDetails} />
+              </motion.div>
+            )}
+
+            {/* Action Buttons */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-4"
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleRegisterClick(false)}
+                className="w-full bg-gradient-to-r from-emerald-600 to-blue-700 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 shadow-lg flex items-center justify-center"
+              >
+                <CheckCircle className="h-6 w-6 mr-2" />
+                Register for Event
+              </motion.button>
+              
+              {event.volunteerCount && event.volunteerCount > 0 && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleRegisterClick(true)}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-indigo-800 transition-all duration-300 shadow-lg flex items-center justify-center"
+                >
+                  <UserCheck className="h-6 w-6 mr-2" />
+                  Volunteer ({event.volunteersApplied || 0}/{event.volunteerCount})
+                </motion.button>
+              )}
+              
+              <button
+                onClick={handleShare}
+                className="w-full border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:border-emerald-500 hover:text-emerald-600 transition-all duration-300 flex items-center justify-center"
+              >
+                <Share2 className="h-5 w-5 mr-2" />
+                Share Event
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </div>
 
       {/* Registration Modal */}
-      {showModal && selectedEvent && (
+      {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -432,7 +475,7 @@ const ParticipantPortal: React.FC = () => {
                   <h2 className="text-2xl font-bold">
                     {isVolunteer ? 'Volunteer Registration' : 'Event Registration'}
                   </h2>
-                  <p className="text-emerald-100 mt-1">{selectedEvent.name}</p>
+                  <p className="text-emerald-100 mt-1">{event.name}</p>
                 </div>
                 <button
                   onClick={resetForm}
@@ -500,7 +543,7 @@ const ParticipantPortal: React.FC = () => {
                     />
                   </div>
                   
-                  {selectedEvent?.isTshirtAvailable && (
+                  {event?.isTshirtAvailable && (
                     <div>
                       <label htmlFor="tshirtSize" className="block text-sm font-medium text-gray-700 mb-2">
                         T-shirt Size
@@ -526,7 +569,7 @@ const ParticipantPortal: React.FC = () => {
               </div>
 
               {/* Ticket Selection (for non-volunteers) */}
-              {!isVolunteer && selectedEvent.ticket && selectedEvent.ticket.length > 0 && (
+              {!isVolunteer && event.ticket && event.ticket.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <Star className="h-5 w-5 mr-2 text-emerald-600" />
@@ -546,7 +589,7 @@ const ParticipantPortal: React.FC = () => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
                       >
                         <option value="">Select ticket type</option>
-                        {selectedEvent.ticket.map((ticket, idx) => (
+                        {event.ticket.map((ticket, idx) => (
                           <option key={idx} value={ticket.name}>
                             {ticket.name} - {ticket.price === 0 ? 'Free' : `₹${ticket.price}`}
                           </option>
@@ -574,7 +617,7 @@ const ParticipantPortal: React.FC = () => {
                   </div>
 
                   {/* Payment Summary */}
-                  {ticketName && selectedEvent.ticket && (
+                  {ticketName && event.ticket && (
                     <div className="mt-6 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
@@ -584,7 +627,7 @@ const ParticipantPortal: React.FC = () => {
                         <div className="flex items-center">
                           <IndianRupee className="h-5 w-5 text-emerald-600 mr-1" />
                           <span className="text-2xl font-bold text-emerald-700">
-                            {(selectedEvent.ticket.find(t => t.name === ticketName)?.price || 0) * quantity}
+                            {(event.ticket.find(t => t.name === ticketName)?.price || 0) * quantity}
                           </span>
                         </div>
                       </div>
@@ -592,10 +635,10 @@ const ParticipantPortal: React.FC = () => {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">{ticketName} × {quantity}</span>
-                          <span className="font-medium">₹{(selectedEvent.ticket.find(t => t.name === ticketName)?.price || 0) * quantity}</span>
+                          <span className="font-medium">₹{(event.ticket.find(t => t.name === ticketName)?.price || 0) * quantity}</span>
                         </div>
                         
-                        {(selectedEvent.ticket.find(t => t.name === ticketName)?.price || 0) > 0 && !isVolunteer ? (
+                        {(event.ticket.find(t => t.name === ticketName)?.price || 0) > 0 && !isVolunteer ? (
                           <div className="pt-2 border-t border-emerald-200">
                             <div className="flex items-center text-emerald-700 font-medium">
                               <CheckCircle className="h-4 w-4 mr-2" />
@@ -644,7 +687,7 @@ const ParticipantPortal: React.FC = () => {
                     ? 'Processing...'
                     : isVolunteer
                     ? 'Register as Volunteer'
-                    : ticketName && selectedEvent.ticket?.find(t => t.name === ticketName)?.price === 0
+                    : ticketName && event.ticket?.find(t => t.name === ticketName)?.price === 0
                     ? 'Register for Free'
                     : 'Proceed to Payment'
                   }
@@ -655,23 +698,6 @@ const ParticipantPortal: React.FC = () => {
         </div>
       )}
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-          <p className="mt-2 text-gray-600">Loading events...</p>
-        </div>
-      )}
-
-      {/* No Events State */}
-      {!loading && filteredEvents.length === 0 && (
-        <div className="text-center py-12">
-          <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Events Found</h3>
-          <p className="text-gray-600">Try adjusting your filters or check back later for new events.</p>
-        </div>
-      )}
-      
       {/* Toast Notifications */}
       <Toaster
         position="top-right"
@@ -698,10 +724,8 @@ const ParticipantPortal: React.FC = () => {
           },
         }}
       />
-        </div>
-      )}
-    </>
+    </div>
   );
 };
 
-export default ParticipantPortal;
+export default EventDetailPage;

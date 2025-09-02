@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 import { useEvents } from '../../contexts/EventContext';
 import { useParticipants, type Participant } from '../../contexts/ParticipantContext';
 import { useTemplates } from '../../contexts/TemplateContext';
@@ -13,9 +16,14 @@ import {
   FileText,
   Image as ImageIcon,
   CheckCircle,
-
   AlertTriangle,
-  Mail
+  Mail,
+  Users,
+  Calendar,
+  FileImage,
+  Send,
+  Settings,
+  Zap
 } from 'lucide-react';
 import { useEmail } from '../../contexts/EmailContext';
 
@@ -57,6 +65,13 @@ const Merged: React.FC = () => {
     subject: emailTemplate.subject, 
     content: emailTemplate.content 
   });
+
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+    });
+  }, []);
 
   // Events are already scoped by backend via auth; keep an extra UI filter if needed later
   const selectedEvent = events.find(e => e.id === selectedEventId);
@@ -457,254 +472,358 @@ const Merged: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header with Tabs */}
-      <div className="flex flex-col space-y-4">
-        <h1 className="text-2xl font-bold text-gray-900">Certificate Management</h1>
-        <div className="flex space-x-4 border-b border-gray-200">
-          <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'generate'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('generate')}
-          >
-            Generate Certificates
-          </button>
-          <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'email'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('email')}
-          >
-            Email Distribution
-          </button>
-        </div>
-      </div>
-
-      {/* Configuration */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Configuration</h2>
-        {activeTab === 'email' && (
-          <div className="mb-6 border-b pb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-md font-semibold text-gray-800">Email Template</h3>
-              <button
-                onClick={() => setIsEditingTemplate(!isEditingTemplate)}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                {isEditingTemplate ? 'Cancel' : 'Edit Template'}
-              </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50">
+      {/* SETU Header */}
+      <motion.div 
+        className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white px-8 py-12"
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center mb-6">
+            <div className="h-12 w-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mr-4">
+              <Zap className="h-6 w-6 text-white" />
             </div>
-            {isEditingTemplate ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subject Template
-                  </label>
-                  <input
-                    type="text"
-                    value={editedTemplate.subject}
-                    onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Content Template
-                  </label>
-                  <textarea
-                    value={editedTemplate.content}
-                    onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
-                    rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Available Variables:</p>
-                  <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                    <li>{'{{ participant_name }}'} - Name of the participant</li>
-                    <li>{'{{ event_name }}'} - Name of the event</li>
-                    <li>{'{{ event_date }}'} - Date of the event</li>
-                    <li>{'{{ certificate_id }}'} - Certificate ID</li>
-                    <li>{'{{ organizer_name }}'} - Name of the organizer</li>
-                  </ul>
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => {
-                      setEmailTemplate(editedTemplate);
-                      setIsEditingTemplate(false);
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Save Template
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">Current Subject:</p>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{emailTemplate.subject}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">Current Content:</p>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded whitespace-pre-wrap">{emailTemplate.content}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Event
-            </label>
-            <select
-              value={selectedEventId}
-              onChange={(e) => setSelectedEventId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Choose an event</option>
-              {events.map((event) => {
-                const participantCount = getParticipantsByEvent(event.id).length;
-                return (
-                  <option key={event.id} value={event.id}>
-                    {event.name} ({participantCount} participants)
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {activeTab === 'generate' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Template
-              </label>
-              <select
-                value={selectedTemplateId}
-                onChange={(e) => setSelectedTemplateId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Choose a template</option>
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name} ({template.type})
-                  </option>
-                ))}
-              </select>
+              <h1 className="text-3xl font-bold">Certificate Management</h1>
+              <p className="text-emerald-100 text-lg">Generate and distribute certificates with professional efficiency - SETU Platform</p>
             </div>
-          )}
-        </div>
+          </div>
 
-        {selectedEventId && (
-          <div className="mt-6 flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 bg-white/10 backdrop-blur-sm rounded-xl p-1">
+            <motion.button
+              className={`flex-1 flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+                activeTab === 'generate'
+                  ? 'bg-white text-emerald-700 shadow-lg'
+                  : 'text-white hover:bg-white/10'
+              }`}
+              onClick={() => setActiveTab('generate')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Award className="h-5 w-5 mr-2" />
+              Generate Certificates
+            </motion.button>
+            <motion.button
+              className={`flex-1 flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+                activeTab === 'email'
+                  ? 'bg-white text-blue-700 shadow-lg'
+                  : 'text-white hover:bg-white/10'
+              }`}
+              onClick={() => setActiveTab('email')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Send className="h-5 w-5 mr-2" />
+              Email Distribution
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Configuration Panel */}
+        <motion.div 
+          className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden mb-8"
+          data-aos="fade-up"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="bg-gradient-to-r from-blue-600 to-emerald-600 px-8 py-6">
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-blue-600 mr-2" />
-              <span className="text-sm font-medium text-blue-900">
-                {activeTab === 'generate' 
-                  ? `Ready to generate ${pendingCount} certificates for ${selectedEvent?.name}`
-                  : `Ready to email ${readyToEmailCount} certificates for ${selectedEvent?.name}`}
-              </span>
+              <div className="h-10 w-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mr-4">
+                <Settings className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Configuration</h2>
+                <p className="text-blue-100 text-sm">Set up your certificate generation preferences</p>
+              </div>
             </div>
-            {activeTab === 'generate' ? (
-              <button
-                onClick={handleBulkGenerate}
-                disabled={generating || pendingCount === 0}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          </div>
+
+          <div className="p-8">
+            {activeTab === 'email' && (
+              <motion.div 
+                className="mb-8 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-blue-200"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                {generating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Generating...
-                  </>
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center">
+                    <Mail className="h-5 w-5 text-blue-600 mr-2" />
+                    <h3 className="text-lg font-bold text-gray-800">Email Template</h3>
+                  </div>
+                  <motion.button
+                    onClick={() => setIsEditingTemplate(!isEditingTemplate)}
+                    className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white px-4 py-2 rounded-xl hover:from-blue-700 hover:to-emerald-700 transition-all duration-300 text-sm font-medium"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {isEditingTemplate ? 'Cancel' : 'Edit Template'}
+                  </motion.button>
+                </div>
+                {isEditingTemplate ? (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Subject Template
+                      </label>
+                      <input
+                        type="text"
+                        value={editedTemplate.subject}
+                        onChange={(e) => setEditedTemplate(prev => ({ ...prev, subject: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                        placeholder="Enter email subject template..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Content Template
+                      </label>
+                      <textarea
+                        value={editedTemplate.content}
+                        onChange={(e) => setEditedTemplate(prev => ({ ...prev, content: e.target.value }))}
+                        rows={8}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                        placeholder="Enter email content template..."
+                      />
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                      <p className="text-sm font-bold text-emerald-800 mb-2">Available Variables:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {['{{ participant_name }}', '{{ event_name }}', '{{ event_date }}', '{{ certificate_id }}', '{{ organizer_name }}'].map((variable) => (
+                          <span key={variable} className="bg-emerald-100 text-emerald-800 text-xs font-medium px-3 py-1 rounded-full">
+                            {variable}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <motion.button
+                        onClick={() => {
+                          setEmailTemplate(editedTemplate);
+                          setIsEditingTemplate(false);
+                        }}
+                        className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 font-medium shadow-lg"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Save Template
+                      </motion.button>
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Generate All Certificates
-                  </>
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <p className="text-sm font-bold text-gray-700 mb-2">Current Subject:</p>
+                      <p className="text-sm text-gray-600">{emailTemplate.subject}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <p className="text-sm font-bold text-gray-700 mb-2">Current Content:</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap max-h-32 overflow-y-auto">{emailTemplate.content}</p>
+                    </div>
+                  </div>
                 )}
-              </button>
-            ) : (
-              <button
-                onClick={handleBulkEmail}
-                disabled={sending || readyToEmailCount === 0}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              </motion.div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
               >
-                {sending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send All Emails
-                  </>
-                )}
-              </button>
+                <label className="block text-sm font-bold text-gray-700 mb-3">
+                  <Calendar className="h-4 w-4 inline mr-2 text-emerald-600" />
+                  Select Event
+                </label>
+                <select
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 bg-white"
+                >
+                  <option value="">Choose an event</option>
+                  {events.map((event) => {
+                    const participantCount = getParticipantsByEvent(event.id).length;
+                    return (
+                      <option key={event.id} value={event.id}>
+                        {event.name} ({participantCount} participants)
+                      </option>
+                    );
+                  })}
+                </select>
+              </motion.div>
+
+              {activeTab === 'generate' && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                    <FileImage className="h-4 w-4 inline mr-2 text-blue-600" />
+                    Select Template
+                  </label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                  >
+                    <option value="">Choose a template</option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} ({template.type})
+                      </option>
+                    ))}
+                  </select>
+                </motion.div>
+              )}
+            </div>
+
+            {selectedEventId && (
+              <motion.div 
+                className="mt-8 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl p-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-6 w-6 text-emerald-600 mr-3" />
+                    <div>
+                      <h3 className="font-bold text-gray-900">
+                        {activeTab === 'generate' 
+                          ? `Ready to generate ${pendingCount} certificates`
+                          : `Ready to email ${readyToEmailCount} certificates`}
+                      </h3>
+                      <p className="text-sm text-gray-600">for {selectedEvent?.name}</p>
+                    </div>
+                  </div>
+                  {activeTab === 'generate' ? (
+                    <motion.button
+                      onClick={handleBulkGenerate}
+                      disabled={generating || pendingCount === 0 || !selectedTemplateId}
+                      className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg"
+                      whileHover={{ scale: generating ? 1 : 1.05 }}
+                      whileTap={{ scale: generating ? 1 : 0.95 }}
+                    >
+                      {generating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-5 w-5 mr-2" />
+                          Generate All Certificates
+                        </>
+                      )}
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      onClick={handleBulkEmail}
+                      disabled={sending || readyToEmailCount === 0}
+                      className="bg-gradient-to-r from-blue-600 to-purple-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-purple-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg"
+                      whileHover={{ scale: sending ? 1 : 1.05 }}
+                      whileTap={{ scale: sending ? 1 : 0.95 }}
+                    >
+                      {sending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-5 w-5 mr-2" />
+                          Send All Emails
+                        </>
+                      )}
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
             )}
           </div>
+        </motion.div>
+
+        {/* Statistics Dashboard */}
+        {selectedEventId && (
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
+            data-aos="fade-up"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <motion.div 
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-300"
+              whileHover={{ scale: 1.02, y: -2 }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Participants</p>
+                  <p className="text-2xl font-bold text-gray-900">{eventParticipants.length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Registered attendees</p>
+                </div>
+                <div className="h-12 w-12 bg-gradient-to-br from-blue-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-300"
+              whileHover={{ scale: 1.02, y: -2 }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Generated</p>
+                  <p className="text-2xl font-bold text-emerald-600">{generatedCount}</p>
+                  <p className="text-xs text-gray-500 mt-1">Certificates created</p>
+                </div>
+                <div className="h-12 w-12 bg-gradient-to-br from-emerald-100 to-green-100 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-emerald-600" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-300"
+              whileHover={{ scale: 1.02, y: -2 }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Emailed</p>
+                  <p className="text-2xl font-bold text-blue-600">{emailedCount}</p>
+                  <p className="text-xs text-gray-500 mt-1">Successfully sent</p>
+                </div>
+                <div className="h-12 w-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                  <Mail className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-300"
+              whileHover={{ scale: 1.02, y: -2 }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Pending</p>
+                  <p className="text-2xl font-bold text-orange-600">{activeTab === 'generate' ? pendingCount : readyToEmailCount}</p>
+                  <p className="text-xs text-gray-500 mt-1">{activeTab === 'generate' ? 'To generate' : 'Ready to email'}</p>
+                </div>
+                <div className="h-12 w-12 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Stats */}
-      {selectedEventId && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Participants</p>
-                <p className="text-2xl font-bold text-gray-900">{eventParticipants.length}</p>
-              </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Award className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Generated</p>
-                <p className="text-2xl font-bold text-emerald-600">{generatedCount}</p>
-              </div>
-              <div className="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Emailed</p>
-                <p className="text-2xl font-bold text-blue-600">{emailedCount}</p>
-              </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Mail className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-orange-600">{pendingCount}</p>
-              </div>
-              <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Offscreen render root for programmatic captures (kept offscreen so users don't see it) */}
       <div id="certificate-render-root" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', height: '297mm', overflow: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
@@ -762,226 +881,319 @@ const Merged: React.FC = () => {
         )}
       </div>
 
-      {/* Participants List */}
-      {selectedEventId && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Participants - {selectedEvent?.name}
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Participant
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Certificate ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {eventParticipants.map((participant) => (
-                  <tr key={participant.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{participant.name}</div>
-                        <div className="text-sm text-gray-500">{participant.email}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {participant.certificateGenerated ? (
-                        participant.emailSent ? (
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 text-blue-500 mr-2" />
-                            <span className="text-sm text-blue-700">Emailed</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                            <span className="text-sm text-green-700">Generated</span>
-                          </div>
-                        )
-                      ) : (
-                        <div className="flex items-center">
-                          <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />
-                          <span className="text-sm text-orange-700">Pending</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-500">
-                        {(() => {
-                          if (!participant.id) return '-';
-                          const cert = certificates.find(c => c.id === participant.id);
-                          return cert?.certificateNumber || participant.id || '-';
-                        })()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        {activeTab === 'generate' && selectedTemplateId && (
-                          <button
-                            onClick={() => handlePreview(participant)}
-                            className="text-blue-600 hover:text-blue-900 flex items-center"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Preview
-                          </button>
-                        )}
-                        {participant.certificateGenerated && (
-                          <>
-                            <button
-                              onClick={() => handleDownloadCertificate(participant, 'pdf')}
-                              className="text-emerald-600 hover:text-emerald-900 flex items-center"
-                              title="Download as PDF"
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              PDF
-                            </button>
-                            <button
-                              onClick={() => handleDownloadCertificate(participant, 'jpg')}
-                              className="text-purple-600 hover:text-purple-900 flex items-center"
-                              title="Download as JPG"
-                            >
-                              <ImageIcon className="h-4 w-4 mr-1" />
-                              JPG
-                            </button>
-                            {!participant.emailSent && (
-                              <button
-                                onClick={() => handleSendEmail(participant)}
-                                className="text-blue-600 hover:text-blue-900 flex items-center"
-                                title={`Send certificate to ${participant.email}`}
-                              >
-                                <Mail className="h-4 w-4 mr-1" />
-                                Email
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {!participant.certificateGenerated && activeTab === 'generate' && (
-                          <button
-                            onClick={() => generateCertificate(participant.id, selectedEventId)}
-                            className="text-orange-600 hover:text-orange-900 flex items-center"
-                          >
-                            <Award className="h-4 w-4 mr-1" />
-                            Generate
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {previewParticipant && selectedTemplate && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Certificate Preview - {previewParticipant.name}
-              </h2>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleDownloadCertificate(previewParticipant, 'pdf')}
-                  className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download PDF
-                </button>
-                <button
-                  onClick={() => setPreviewParticipant(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 overflow-auto bg-gray-50" style={{ maxHeight: 'calc(90vh - 100px)' }}>
-              <div id="certificate-wrapper" className="bg-white p-4 rounded-lg shadow-sm flex justify-center" style={{ maxWidth: '100%', overflowX: 'auto' }}>
-                <div className="certificate-preview-content" style={{ 
-                  width: '210mm', 
-                  minHeight: '297mm', 
-                  background: '#fff', 
-                  position: 'relative', 
-                  padding: '15mm',
-                  boxSizing: 'border-box',
-                  margin: '0 auto',
-                  transform: 'scale(0.9)',
-                  transformOrigin: 'top center'
-                }}>
-                {(() => {
-                  const content = generatePreviewContent(previewParticipant);
-                  
-                  if (typeof content === 'object' && content.type === 'image') {
-                    return (
-                      <div className="flex justify-center">
-                        <div className="relative" style={{ width: '180mm', minHeight: '267mm', margin: '0 auto' }}>
-                          {content.backgroundImage && (
-                            <img
-                              src={content.backgroundImage}
-                              alt="Certificate background"
-                              className="w-full h-full object-contain rounded-lg"
-                            />
-                          )}
-                          {content.placeholders?.map((placeholder: ImagePlaceholder) => (
-                             <div
-                               key={placeholder.id}
-                               className="absolute"
-                               style={{
-                                 left: `${placeholder.x}px`,
-                                 top: `${placeholder.y}px`,
-                                 width: `${placeholder.width}px`,
-                                 height: `${placeholder.height}px`,
-                                 fontSize: `${placeholder.fontSize}px`,
-                                 fontFamily: placeholder.fontFamily,
-                                 color: placeholder.color,
-                                 fontWeight: placeholder.fontWeight,
-                                 textAlign: placeholder.textAlign,
-                                 transform: `rotate(${placeholder.rotation}deg)`,
-                                 display: 'flex',
-                                 alignItems: 'center',
-                                 justifyContent: placeholder.textAlign === 'center' ? 'center' : placeholder.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                                 lineHeight: '1.2'
-                               }}
-                             >
-                               {placeholder.text}
-                             </div>
-                           ))}
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: content as string
-                        }}
-                        style={{ width: '180mm', minHeight: '267mm', margin: '0 auto' }}
-                      />
-                    );
-                  }
-                })()}
+        {/* Participants Table */}
+        {selectedEventId && (
+          <motion.div 
+            className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
+            data-aos="fade-up"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <div className="bg-gradient-to-r from-purple-600 to-emerald-600 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mr-4">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Participants</h2>
+                    <p className="text-purple-100 text-sm">{selectedEvent?.name} - {eventParticipants.length} participants</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-sm font-medium">
+                    {eventParticipants.length} Total
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-emerald-50">
+                  <tr>
+                    <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Participant
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Certificate ID
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  <AnimatePresence>
+                    {eventParticipants.map((participant, index) => (
+                      <motion.tr 
+                        key={participant.id} 
+                        className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-emerald-50 transition-all duration-300"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.01 }}
+                      >
+                        <td className="px-8 py-6">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 bg-gradient-to-br from-emerald-100 to-blue-100 rounded-full flex items-center justify-center mr-4">
+                              <span className="text-emerald-700 font-bold text-sm">
+                                {participant.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-gray-900">{participant.name}</div>
+                              <div className="text-sm text-gray-600 flex items-center">
+                                <Mail className="h-3 w-3 mr-1" />
+                                {participant.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          {participant.certificateGenerated ? (
+                            participant.emailSent ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                <Mail className="h-3 w-3 mr-1" />
+                                Emailed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Generated
+                              </span>
+                            )
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center">
+                            <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm font-mono text-gray-600">
+                              {(() => {
+                                if (!participant.id) return 'N/A';
+                                const cert = certificates.find(c => c.id === participant.id);
+                                return cert?.certificateNumber || participant.id || 'N/A';
+                              })()}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center space-x-2">
+                            {activeTab === 'generate' && selectedTemplateId && (
+                              <motion.button
+                                onClick={() => handlePreview(participant)}
+                                className="flex items-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all duration-200 text-xs font-medium"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Preview
+                              </motion.button>
+                            )}
+                            {participant.certificateGenerated && (
+                              <>
+                                <motion.button
+                                  onClick={() => handleDownloadCertificate(participant, 'pdf')}
+                                  className="flex items-center px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-all duration-200 text-xs font-medium"
+                                  title="Download as PDF"
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  PDF
+                                </motion.button>
+                                <motion.button
+                                  onClick={() => handleDownloadCertificate(participant, 'jpg')}
+                                  className="flex items-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-all duration-200 text-xs font-medium"
+                                  title="Download as JPG"
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <ImageIcon className="h-3 w-3 mr-1" />
+                                  JPG
+                                </motion.button>
+                                {!participant.emailSent && (
+                                  <motion.button
+                                    onClick={() => handleSendEmail(participant)}
+                                    className="flex items-center px-3 py-2 bg-gradient-to-r from-blue-100 to-emerald-100 text-blue-700 rounded-lg hover:from-blue-200 hover:to-emerald-200 transition-all duration-200 text-xs font-medium"
+                                    title={`Send certificate to ${participant.email}`}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <Mail className="h-3 w-3 mr-1" />
+                                    Email
+                                  </motion.button>
+                                )}
+                              </>
+                            )}
+                            {!participant.certificateGenerated && activeTab === 'generate' && selectedTemplateId && (
+                              <motion.button
+                                onClick={() => generateCertificate(participant.id, selectedEventId)}
+                                className="flex items-center px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-all duration-200 text-xs font-medium"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Award className="h-3 w-3 mr-1" />
+                                Generate
+                              </motion.button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+
+              {eventParticipants.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No participants found</p>
+                  <p className="text-gray-400 text-sm">Add participants to this event to get started</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Enhanced Preview Modal */}
+        <AnimatePresence>
+          {previewParticipant && selectedTemplate && (
+            <motion.div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={(e) => e.target === e.currentTarget && setPreviewParticipant(null)}
+            >
+              <motion.div 
+                className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden"
+                initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="bg-gradient-to-r from-emerald-600 to-blue-700 px-8 py-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mr-4">
+                        <Eye className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-white">
+                          Certificate Preview
+                        </h2>
+                        <p className="text-emerald-100 text-sm">{previewParticipant.name} - SETU Platform</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <motion.button
+                        onClick={() => handleDownloadCertificate(previewParticipant, 'pdf')}
+                        className="flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-all duration-200 font-medium"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
+                      </motion.button>
+                      <motion.button
+                        onClick={() => setPreviewParticipant(null)}
+                        className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        ✕
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-8 overflow-auto bg-gradient-to-br from-gray-50 to-emerald-50" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                  <div id="certificate-wrapper" className="bg-white p-6 rounded-2xl shadow-xl border border-gray-200 flex justify-center" style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                    <div className="certificate-preview-content" style={{ 
+                      width: '210mm', 
+                      minHeight: '297mm', 
+                      background: '#fff', 
+                      position: 'relative', 
+                      padding: '15mm',
+                      boxSizing: 'border-box',
+                      margin: '0 auto',
+                      transform: 'scale(0.9)',
+                      transformOrigin: 'top center'
+                    }}>
+                    {(() => {
+                      const content = generatePreviewContent(previewParticipant);
+                      
+                      if (typeof content === 'object' && content.type === 'image') {
+                        return (
+                          <div className="flex justify-center">
+                            <div className="relative shadow-2xl rounded-xl overflow-hidden" style={{ width: '180mm', minHeight: '267mm', margin: '0 auto' }}>
+                              {content.backgroundImage && (
+                                <img
+                                  src={content.backgroundImage}
+                                  alt="Certificate background"
+                                  className="w-full h-full object-contain"
+                                />
+                              )}
+                              {content.placeholders?.map((placeholder: ImagePlaceholder) => (
+                                 <div
+                                   key={placeholder.id}
+                                   className="absolute"
+                                   style={{
+                                     left: `${placeholder.x}px`,
+                                     top: `${placeholder.y}px`,
+                                     width: `${placeholder.width}px`,
+                                     height: `${placeholder.height}px`,
+                                     fontSize: `${placeholder.fontSize}px`,
+                                     fontFamily: placeholder.fontFamily,
+                                     color: placeholder.color,
+                                     fontWeight: placeholder.fontWeight,
+                                     textAlign: placeholder.textAlign,
+                                     transform: `rotate(${placeholder.rotation}deg)`,
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     justifyContent: placeholder.textAlign === 'center' ? 'center' : placeholder.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                     lineHeight: '1.2'
+                                   }}
+                                 >
+                                   {placeholder.text}
+                                 </div>
+                               ))}
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div
+                            className="shadow-2xl rounded-xl overflow-hidden bg-white"
+                            dangerouslySetInnerHTML={{
+                              __html: content as string
+                            }}
+                            style={{ width: '180mm', minHeight: '267mm', margin: '0 auto', padding: '20px' }}
+                          />
+                        );
+                      }
+                    })()}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

@@ -5,14 +5,36 @@ import { motion } from 'framer-motion';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Simple Background Component (removed particles for better performance)
-const SimpleBackground: React.FC = () => {
-  return (
-    <div className="absolute inset-0 -z-10">
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl opacity-60"></div>
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl opacity-60"></div>
-    </div>
-  );
+// Particle Background Component
+const ParticleBackground: React.FC = () => {
+  useEffect(() => {
+    const createParticle = () => {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.width = Math.random() * 4 + 2 + 'px';
+      particle.style.height = particle.style.width;
+      particle.style.animationDelay = Math.random() * 15 + 's';
+      particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+      
+      const container = document.querySelector('.particles-bg');
+      if (container) {
+        container.appendChild(particle);
+        
+    
+        setTimeout(() => {
+          if (particle.parentNode) {
+            particle.parentNode.removeChild(particle);
+          }
+        }, 15000);
+      }
+    };
+
+    const interval = setInterval(createParticle, 300);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div className="particles-bg" />;
 };
 
 const GradientText: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -20,7 +42,6 @@ const GradientText: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 );
 
 // Animation variants
-
 const staggerContainer = {
   animate: {
     transition: {
@@ -150,7 +171,7 @@ const LandingPage: React.FC = () => {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <SimpleBackground />
+        <ParticleBackground />
         <div className="absolute inset-0 -z-10">
           <motion.div 
             className="absolute top-0 left-1/4 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl"
@@ -226,12 +247,7 @@ const LandingPage: React.FC = () => {
                   to="/participate"
                   className="inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-600 to-blue-700 px-8 py-4 text-lg font-semibold text-white shadow-xl hover:shadow-2xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  <motion.span
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    Start Your Journey
-                  </motion.span>
+                  <span>Start Your Journey</span>
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </motion.div>
@@ -247,7 +263,7 @@ const LandingPage: React.FC = () => {
 
             {/* Trust indicators */}
             <motion.div 
-              className="flex items-center gap-8 pt-4"
+              className="flex flex-wrap items-center gap-6 pt-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.6 }}

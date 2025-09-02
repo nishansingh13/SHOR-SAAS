@@ -85,6 +85,7 @@ interface ParticipantContextType {
   updateParticipantCertificateStatus: (participantId: string, eventId: string, certificateId: string) => void; // New method
   sendEmail: (participantId: string, eventId: string, emailData: { subject: string; content: string }) => Promise<boolean>;
   refreshAllParticipants: () => Promise<void>; // New method to refresh all loaded events
+  paymentSuccessEmail: (eventName: string, email: string) => Promise<void>;
 }
 
 const ParticipantContext = createContext<ParticipantContextType | undefined>(undefined);
@@ -365,6 +366,17 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const allParticipants: Participant[] = Object.values(participantsByEvent).flat();
 
+  const paymentSuccessEmail = useCallback(async (eventName: string, email: string) => {
+    try {
+      await axios.post(`${API_BASE}/mail`, {
+        email,
+        subject: 'Payment Successful',
+        content: `Thank you for your payment. You have been successfully registered for the event "${eventName}".`
+      });
+    } catch (error) {
+      console.error('Failed to send payment success email:', error);
+    }
+  }, []);
 
   const sendEmail = useCallback(async (participantId: string, eventId: string, emailData: { subject: string; content: string; certificatePDF?: string }) => {
     try {
@@ -374,11 +386,6 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
         throw new Error('Could not find participant email');
       }
 
-      console.log('Sending email with data:', {
-        to: recipientEmail,
-        subject: emailData.subject,
-        hasAttachment: !!emailData.certificatePDF
-      });
 
       const res = await axios.post(`${API_BASE}/mail`, {
         email: recipientEmail,
@@ -418,7 +425,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }, eventId);
       
       // Rethrow with better error message
-      throw new Error(`Failed to send email: ${errorMessage}`);f
+      throw new Error(`Failed to send email: ${errorMessage}`);
     }
   }, [updateParticipant, getEmailById]);
 
@@ -435,6 +442,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     deleteParticipant,
     updateParticipantCertificateStatus,
     sendEmail,
+    paymentSuccessEmail,
     refreshAllParticipants
   }), [
     participantsByEvent,
@@ -448,6 +456,7 @@ export const ParticipantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     deleteParticipant,
     updateParticipantCertificateStatus,
     sendEmail,
+    paymentSuccessEmail,
     refreshAllParticipants
   ]);
 

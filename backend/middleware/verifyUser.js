@@ -24,3 +24,14 @@ export const verifyUser = (req, res, next) => {
             return res.status(401).json({ message: "Invalid or expired token" });
     }
 };
+export const authorize = (req, res, next) => {
+    const user = req.user;
+    if (!user) {
+        return res.status(403).json({ message: "Forbidden" });
+    }
+    // Check if user has the required role
+    if (user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+    }
+    next();
+}
