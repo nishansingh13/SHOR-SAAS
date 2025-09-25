@@ -23,7 +23,7 @@ import { useParticipants } from '../../contexts/ParticipantContext';
 const EventManagement: React.FC = () => {
   const { events, createEvent, updateEvent, deleteEvent, refreshEvents, getRawEventById } = useEvents();
   const { user } = useAuth();
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
   const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_EVENT_IMAGE || '';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);

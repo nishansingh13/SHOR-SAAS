@@ -42,12 +42,12 @@ function Razorpay() {
       }
 
       // Get Razorpay key from backend
-      const keyResponse = await fetch('http://localhost:3000/api/orders/key');
+      const keyResponse = await fetch('https://shor-saas.onrender.com/api/orders/key');
       const keyData = await keyResponse.json();
       const key = keyData.key;
 
       // Create order from backend
-      const response = await fetch('http://localhost:3000/api/orders/create', {
+      const response = await fetch('https://shor-saas.onrender.com/api/orders/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

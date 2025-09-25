@@ -35,7 +35,7 @@ export const useRazorpay = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {

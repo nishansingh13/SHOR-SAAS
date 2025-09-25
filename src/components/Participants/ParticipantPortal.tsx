@@ -36,7 +36,7 @@ const ParticipantPortal: React.FC = () => {
   console.log('Public events in ParticipantPortal:', publicEvents);
   const { initiatePayment, loading: paymentLoading, error: paymentError, setError: setPaymentError } = useRazorpay();
   
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
   
   const [filteredEvents, setFilteredEvents] = useState<EventItem[]>([]);
   const [showModal, setShowModal] = useState(false);

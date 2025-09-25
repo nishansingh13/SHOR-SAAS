@@ -41,7 +41,7 @@ export type AdminContextType = {
 };
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
-const server = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const server = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 

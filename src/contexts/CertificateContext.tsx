@@ -20,7 +20,7 @@ interface CertificateResponse {
   emailSent?: boolean;
 }
 
-const server = "http://localhost:3000/api";
+const server = "https://shor-saas.onrender.com/api";
 
 interface CertificateContextType {
   certificates: Certificate[];
