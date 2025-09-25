@@ -1,13 +1,15 @@
 import nodemailer from 'nodemailer';
 import express from 'express';
+import { configDotenv } from 'dotenv';
 const router = express.Router();
+configDotenv();
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
         user: "nishansingh2480@gmail.com",
-        pass: "iedgvupemhpqjxvs"
+        pass: process.env.PASS
     }
 })
 router.post('/',(req,res)=>{
