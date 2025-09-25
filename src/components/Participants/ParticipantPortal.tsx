@@ -32,7 +32,8 @@ interface FilterState {
 
 const ParticipantPortal: React.FC = () => {
   const { registerParticipant , paymentSuccessEmail } = useParticipants();
-  const { events } = useEvents();
+  const { publicEvents } = useEvents();
+  console.log('Public events in ParticipantPortal:', publicEvents);
   const { initiatePayment, loading: paymentLoading, error: paymentError, setError: setPaymentError } = useRazorpay();
   
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
@@ -61,7 +62,7 @@ const ParticipantPortal: React.FC = () => {
   });
 
   const applyFilters = useCallback(() => {
-    let filtered = events.filter((event) => 
+    let filtered = publicEvents.filter((event) => 
       event.status === 'active' &&
       event.name.toLowerCase().includes(filters.searchTerm.toLowerCase())
     );
@@ -79,7 +80,7 @@ const ParticipantPortal: React.FC = () => {
     }
 
     setFilteredEvents(filtered as EventItem[]);
-  }, [events, filters]);
+  }, [publicEvents, filters]);
 
   useEffect(() => {
     applyFilters();

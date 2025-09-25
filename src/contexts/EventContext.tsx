@@ -28,12 +28,14 @@ interface EmailTemplate {
 
 interface EventContextType {
   events: Event[];
+  publicEvents: Event[];
   selectedEvent: Event | null;
   createEvent: (event: Omit<Event, 'id' | 'createdAt' | 'participantCount' | 'certificatesGenerated'>) => void;
   updateEvent: (id: string, event: Partial<Event>, backendOverride?: Partial<BackendEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   selectEvent: (event: Event | null) => void;
   refreshEvents: () => Promise<void>;
+  refreshPublicEvents: () => Promise<void>;
   getRawEventById: (id: string) => BackendEvent | undefined;
   emailTemplate: EmailTemplate;
   setEmailTemplate: (template: EmailTemplate) => void;
@@ -102,6 +104,7 @@ const mapBackendToEvent = (e: BackendEvent): Event => ({
 export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
+  const [publicEvents, setPublicEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [rawEventsMap, setRawEventsMap] = useState<Record<string, BackendEvent>>({});
   const [emailTemplate, setEmailTemplate] = useState({
@@ -125,7 +128,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const refreshEvents = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
+      if (!token || !user) {
         // Avoid hitting protected endpoint until token is available
         setEvents([]);
         setRawEventsMap({});
@@ -144,16 +147,37 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (key) nextMap[key] = e;
       }
       setRawEventsMap(nextMap);
-      console.log(`Loaded ${mapped.length} events, participantCounts:`, mapped.map(e => ({ id: e.id, count: e.participantCount })));
+      console.log(`Loaded ${mapped.length} managed events, participantCounts:`, mapped.map(e => ({ id: e.id, count: e.participantCount })));
     } catch (err) {
-      console.error('Error loading events:', err);
+      console.error('Error loading managed events:', err);
+      setEvents([]);
+      setRawEventsMap({});
+    }
+  }, [user]);
+
+  const refreshPublicEvents = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/public/events`);
+      const data: BackendEvent[] = response.data;
+      const mapped: Event[] = Array.isArray(data) ? data.map(mapBackendToEvent) : [];
+      setPublicEvents(mapped);
+      
+      console.log(`Loaded ${mapped.length} public events`);
+    } catch (err) {
+      console.error('Error loading public events:', err);
+      setPublicEvents([]);
     }
   }, []);
 
   useEffect(() => {
-    // reload when auth user changes so event list reflects organizer scoping
-    refreshEvents();
-  }, [refreshEvents, user]);
+    // Always load public events
+    refreshPublicEvents();
+    
+    // Load managed events only if user is authenticated
+    if (user) {
+      refreshEvents();
+    }
+  }, [refreshEvents, refreshPublicEvents, user]);
 
   const createEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'participantCount' | 'certificatesGenerated'>) => {
     const newEvent: Event = {
@@ -238,12 +262,14 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <EventContext.Provider value={{
       events,
+      publicEvents,
       selectedEvent,
       createEvent,
       updateEvent,
       deleteEvent,
       selectEvent,
       refreshEvents,
+      refreshPublicEvents,
       getRawEventById,
       emailTemplate,
       setEmailTemplate: (template: EmailTemplate) => setEmailTemplate(template),
