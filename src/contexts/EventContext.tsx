@@ -43,7 +43,6 @@ interface EventContextType {
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useEvents = () => {
   const context = useContext(EventContext);
   if (context === undefined) {
@@ -52,7 +51,7 @@ export const useEvents = () => {
   return context;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 interface BackendEvent {
   _id?: string;
@@ -80,7 +79,6 @@ const mapBackendToEvent = (e: BackendEvent): Event => ({
   name: e.title ?? e.name ?? 'Untitled',
   description: e.description ?? '',
   date: e.date ? new Date(e.date).toISOString() : new Date().toISOString(),
-  // Prefer backend-provided status when available and valid, otherwise default to 'pending'
   status: ((): Event['status'] => {
     const s = e.status ?? e['status'];
     if (s === 'active' || s === 'draft' || s === 'completed' || s === 'pending') return s as Event['status'];
@@ -89,9 +87,7 @@ const mapBackendToEvent = (e: BackendEvent): Event => ({
   participantCount: e.participantCount ?? 0,
   certificatesGenerated: e.certificatesGenerated ?? 0,
   createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString(),
-  // prefer explicit organizer string; fallback to organiserId string if present
   organizer: e.organizer ?? (e.organiserId ? String(e.organiserId) : 'Organizer'),
-  // Include additional fields from backend
   image: e.image,
   venue: e.venue,
   time: e.time,
@@ -129,7 +125,6 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const token = localStorage.getItem('token');
       if (!token || !user) {
-        // Avoid hitting protected endpoint until token is available
         setEvents([]);
         setRawEventsMap({});
         return;
@@ -138,7 +133,6 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         headers: { Authorization: `Bearer ${token}` },
       });
       const data: BackendEvent[] = response.data;
-  // Backend already scopes events by organiserId; no extra UI filter
   const mapped: Event[] = Array.isArray(data) ? data.map(mapBackendToEvent) : [];
       setEvents(mapped);
       const nextMap: Record<string, BackendEvent> = {};
@@ -170,10 +164,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   useEffect(() => {
-    // Always load public events
     refreshPublicEvents();
     
-    // Load managed events only if user is authenticated
     if (user) {
       refreshEvents();
     }
@@ -191,12 +183,9 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateEvent = async (id: string, eventData: Partial<Event>, backendOverride?: Partial<BackendEvent>) => {
-    // Build a safe backend payload using existing raw event fields as base,
-    // then override with any provided backendOverride or mapped fields
     const existing = rawEventsMap[id];
 
     if (!existing) {
-      // Fallback to local state update if we don't have raw event
       setEvents(prev => prev.map(event => event.id === id ? { ...event, ...eventData } : event));
       return;
     }
@@ -229,7 +218,6 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteEvent = async (id: string) => {
     const isLocalOnly = !rawEventsMap[id];
     if (isLocalOnly) {
-      // Remove local-only event immediately
       setEvents(prev => prev.filter(e => e.id !== id));
       if (selectedEvent?.id === id) setSelectedEvent(null);
       return;
@@ -249,7 +237,6 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (selectedEvent?.id === id) setSelectedEvent(null);
     } catch (err) {
       console.error('Error deleting event:', err);
-      // Do not change state to avoid drift with backend
     }
   };
 

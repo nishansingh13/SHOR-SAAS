@@ -469,7 +469,6 @@ const ImageCertificateEditor: React.FC<ImageCertificateEditorProps> = ({
                           className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize"
                           onMouseDown={(e) => {
                             e.stopPropagation();
-                            // Handle resize logic here
                           }}
                         />
                       )}

@@ -41,13 +41,13 @@ function Razorpay() {
         return;
       }
 
-      // Get Razorpay key from backend
-      const keyResponse = await fetch('https://shor-saas.onrender.com/api/orders/key');
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+      const keyResponse = await fetch(`${API_BASE}/orders/key`);
       const keyData = await keyResponse.json();
       const key = keyData.key;
 
-      // Create order from backend
-      const response = await fetch('https://shor-saas.onrender.com/api/orders/create', {
+      const response = await fetch(`${API_BASE}/orders/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,6 @@ function Razorpay() {
 
       const { order } = data;
 
-      // Razorpay options
       const options = {
         key,
         amount: order.amount,
@@ -77,7 +76,6 @@ function Razorpay() {
         order_id: order.id,
         handler: function (response: RazorpayResponse) {
           alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
-          // Here you can call your backend to verify the payment
           console.log(response);
         },
         prefill: {

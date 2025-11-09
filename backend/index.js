@@ -13,6 +13,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import createOrder from './paymentIntegration/createOrder.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import organizerRequestRoutes from './routes/organizerRequestRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
@@ -21,7 +22,6 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 dotenv.config();
 connectDB();
     
-// Warn early if JWT secret is missing
 if (!process.env.JWT_SECRET) {
     console.warn('[startup] JWT_SECRET is not set. Authenticated routes will fail. Set JWT_SECRET in your .env and restart the server.');
 }
@@ -38,6 +38,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/orders',createOrder);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/organizer-requests', organizerRequestRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

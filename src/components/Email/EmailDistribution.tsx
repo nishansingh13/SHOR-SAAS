@@ -52,7 +52,6 @@ const EmailDistribution: React.FC = () => {
     setSending(true);
     
     try {
-      // Send emails in sequence
       for (const participant of readyToSend) {
          await sendEmail(participant.id,participant.email,processTemplate(participant));
          await updateEmailStatus(participant.email , selectedEvent?.id);

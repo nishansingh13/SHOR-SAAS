@@ -52,7 +52,6 @@ export const updateTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     const payload = req.body || {};
-  // Ensure organizer can only update their own templates
   const filter = req.user?.role === 'organizer' ? { _id: id, organiserId: req.user.userId } : { _id: id };
   const updated = await TemplateModel.findOneAndUpdate(filter, payload, { new: true });
     if (!updated) return res.status(404).json({ error: 'Template not found' });

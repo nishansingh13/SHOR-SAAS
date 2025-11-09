@@ -56,7 +56,6 @@ const Merged: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [previewParticipant, setPreviewParticipant] = useState<Participant | null>(null);
-  // Offscreen render target used for programmatic captures (so users don't see the modal)
   const [offscreenPreviewParticipant, setOffscreenPreviewParticipant] = useState<Participant | null>(null);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
@@ -73,13 +72,10 @@ const Merged: React.FC = () => {
     });
   }, []);
 
-  // Events are already scoped by backend via auth; keep an extra UI filter if needed later
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   const eventParticipants = selectedEventId ? getParticipantsByEvent(selectedEventId) : [];
-  // const eventCertificates = selectedEventId ? certificates.filter(c => String(c.eventId) === String(selectedEventId)) : [];
 
-  // Load data effects
   useEffect(() => {
     if (selectedEventId) {
       loadParticipants(selectedEventId);
@@ -94,24 +90,19 @@ const Merged: React.FC = () => {
     loadCertificates();
   }, [events, loadParticipants, loadCertificates]);
 
-  // Counts for stats
   const pendingCount = eventParticipants.filter(p => !p.certificateGenerated).length;
   const generatedCount = eventParticipants.filter(p => p.certificateGenerated).length;
   const emailedCount = eventParticipants.filter(p => p.certificateGenerated && p.emailSent).length;
   const readyToEmailCount = eventParticipants.filter(p => p.certificateGenerated && !p.emailSent).length;
 
-  // Preview handling
   const handlePreview = (participant: Participant) => {
     if (!selectedTemplate) return;
     setPreviewParticipant(participant);
   };
 
-  // Prepare preview for capture. If showModal is true, the visible modal will be used,
-  // otherwise populate the offscreen render target.
   const preparePreviewForCapture = async (participant: Participant, showModal = false) => {
     if (showModal) setPreviewParticipant(participant);
     else setOffscreenPreviewParticipant(participant);
-    // Give React time to render
     await new Promise((r) => setTimeout(r, 200));
   };
 
@@ -147,7 +138,6 @@ const Merged: React.FC = () => {
     }
   };
 
-  // Certificate generation
   const generatePDFFromPreview = async (contentElement: HTMLElement, participant: Participant): Promise<Blob> => {
     try {
       const width = contentElement.scrollWidth;
@@ -226,19 +216,15 @@ const Merged: React.FC = () => {
         throw new Error('No template selected');
       }
 
-  // Prepare an offscreen preview for capture (don't show modal)
   await preparePreviewForCapture(participant, false);
 
-  // Get the offscreen preview content element
   const certificateElement = document.querySelector('#certificate-render-root .certificate-preview-content') as HTMLElement;
       if (!certificateElement) {
         throw new Error('Certificate preview element not found');
       }
 
-      // Wait for all images to load in the original element
       await waitForImages(certificateElement);
 
-      // Generate PDF blob with optimized settings
       console.log('Rendering certificate to canvas...');
       const canvas = await html2canvas(certificateElement, {
         scale: 1.5,
@@ -248,7 +234,6 @@ const Merged: React.FC = () => {
         backgroundColor: '#ffffff',
         imageTimeout: 15000, // Increase timeout for image loading
   onclone: async (_doc, element) => {
-          // Wait for all images in the cloned document
           const clonedImages = element.getElementsByTagName('img');
           console.log(`Waiting for ${clonedImages.length} images to load in clone...`);
           await Promise.all(Array.from(clonedImages).map(img => {
@@ -262,12 +247,10 @@ const Merged: React.FC = () => {
       });
 
       console.log('Creating PDF...');
-      // Calculate dimensions
       const width = canvas.width;
       const height = canvas.height;
       const aspectRatio = width / height;
 
-      // Create PDF with proper dimensions
       const pdf = new jsPDF({
         orientation: aspectRatio > 1 ? 'landscape' : 'portrait',
         unit: 'px',
@@ -275,12 +258,10 @@ const Merged: React.FC = () => {
       });
 
       try {
-        // Convert to JPEG with compression
         const imageData = canvas.toDataURL('image/jpeg', 0.85);
         
         pdf.addImage(imageData, 'JPEG', 0, 0, width, height);
 
-        // Set PDF metadata
         pdf.setProperties({
           title: `Certificate - ${participant.name}`,
           subject: 'Certificate',
@@ -288,16 +269,13 @@ const Merged: React.FC = () => {
           creator: 'Certificate Generation System'
         });
 
-        // Convert to base64
         const base64String = pdf.output('datauristring');
         const base64Data = base64String.split(',')[1];
 
-        // Verify we have data
         if (!base64Data) {
           throw new Error('Failed to generate PDF data');
         }
 
-        // Clear offscreen preview now that we have the PDF
         setOffscreenPreviewParticipant(null);
 
         return base64Data;
@@ -308,7 +286,6 @@ const Merged: React.FC = () => {
       
     } catch (error) {
       console.error('Error generating certificate PDF:', error);
-      // Clear offscreen preview on error as well
       setOffscreenPreviewParticipant(null);
       throw new Error(`Failed to generate certificate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -355,7 +332,6 @@ const Merged: React.FC = () => {
         const result = await sendEmail(participant.id, selectedEventId, emailData);
         console.log('Email sent result:', result);
         
-        // Update email status and wait for it to complete
         try {
           await updateEmailStatus(participant.email, selectedEventId);
           console.log(`Updated email status for ${participant.email}`);
@@ -368,7 +344,6 @@ const Merged: React.FC = () => {
         if (error instanceof Error) {
           errorMessage = error.message;
         } else if (typeof error === 'object' && error !== null) {
-          // Handle Axios errors or other error objects
           const errorObj = error as unknown as { message?: string; response?: { data?: { message?: string } } };
           errorMessage = errorObj.message || errorObj.response?.data?.message || JSON.stringify(error);
         }
@@ -433,7 +408,6 @@ const Merged: React.FC = () => {
 
     try {
       const event = events.find(e => e.id === selectedEventId);
-      // Generate PDF certificate
       const certificatePDF = await generateCertificatePDF(participant);
 
       const content = emailTemplate.content

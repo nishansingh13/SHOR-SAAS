@@ -20,10 +20,8 @@ const LocationMap: React.FC<LocationMapProps> = ({ venue, venueDetails }) => {
   const openInMaps = () => {
     if (hasCoordinates) {
       const { lat, lng } = venueDetails!.coordinates;
-      // Open in Google Maps
       window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
     } else {
-      // Fallback to search by venue name
       window.open(`https://www.google.com/maps/search/${encodeURIComponent(venue)}`, '_blank');
     }
   };
@@ -73,7 +71,6 @@ const LocationMap: React.FC<LocationMapProps> = ({ venue, venueDetails }) => {
                 alt={`Map showing ${venue}`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  // Fallback to OpenStreetMap if Mapbox fails
                   const target = e.target as HTMLImageElement;
                   target.src = `https://www.openstreetmap.org/export/embed.html?bbox=${venueDetails!.coordinates.lng-0.01},${venueDetails!.coordinates.lat-0.01},${venueDetails!.coordinates.lng+0.01},${venueDetails!.coordinates.lat+0.01}&layer=mapnik&marker=${venueDetails!.coordinates.lat},${venueDetails!.coordinates.lng}`;
                 }}

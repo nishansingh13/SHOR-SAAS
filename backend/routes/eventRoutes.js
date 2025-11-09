@@ -4,7 +4,6 @@ import { verifyUser } from '../middleware/verifyUser.js';
 const router = express.Router();
 
 router.get('/events', verifyUser, getEvents);
-// Public listing for participant portal
 router.get('/public/events', getPublicEvents);
 router.post('/events', verifyUser, saveEvent);
 router.put('/events/:id', verifyUser, updateEventById);

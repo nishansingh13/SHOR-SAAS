@@ -7,52 +7,47 @@ import { TemplateProvider } from './contexts/TemplateContext';
 import { ParticipantProvider } from './contexts/ParticipantContext';
 import { CertificateProvider } from './contexts/CertificateContext';
 import Login from './components/Auth/Login';
+import OrganizerRegistration from './components/Auth/OrganizerRegistration';
 import Dashboard from './components/Dashboard/Dashboard';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import EventManagement from './components/Events/EventManagement';
 import TemplateManagement from './components/Templates/TemplateManagement';
 import AdminApproval from './components/Admin/AdminApproval';
+import OrganizerRequestManagement from './components/Admin/OrganizerRequestManagement';
 import ParticipantManagement from './components/Participants/ParticipantManagement';
 
 import EmailDistribution from './components/Email/EmailDistribution';
 import Reports from './components/Reports/Reports';
 import ParticipantPortal from './components/Participants/ParticipantPortal';
 import CertificateGeneration from './components/Certificates/CertificateGeneration';
-// import { Merge } from 'lucide-react';
 import Merged from './components/Merged/Merged';
 import EmailProvider from './contexts/EmailContext';
 import LandingPage from './components/Landing/LandingPage';
 import RazorpayButton from './components/Payment/Razorpay';
 
-// Type defining all valid routes in the app
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
 
-// Protected route component that requires authentication
 const ProtectedRoute = ( { children, role }: { role:string,children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   console.log(user?.role==role);
   const location = useLocation();
 
-  // Wait for authentication to finish loading before making a decision
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   if (!user) {  
-    // Redirect to login if not authenticated, but remember the page they tried to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>; 
 };
 
-// Layout component for admin pages with sidebar and header
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   
-  // Extract current page from URL path
   const currentPage = location.pathname.substring(1) || 'dashboard';
 
   return (
@@ -89,6 +84,7 @@ const AdminLayout = () => {
               <Route path="/events" element={<EventManagement />} />
               <Route path="/templates" element={<TemplateManagement />} />
               <Route path="/approvals" element={<AdminApproval />} />
+              <Route path="/organizer-requests" element={<OrganizerRequestManagement />} />
               <Route path="/participants" element={<ParticipantManagement />} />
               <Route path="/certificates" element={<CertificateGeneration />} />
               <Route path="/email" element={<EmailDistribution />} />
@@ -118,6 +114,7 @@ function App() {
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/participate" element={<ParticipantPortal />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/organizer-registration" element={<OrganizerRegistration />} />
                   {/* Protected admin routes */}
                   <Route 
                     path="/*" 

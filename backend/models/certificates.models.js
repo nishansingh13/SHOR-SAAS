@@ -39,7 +39,6 @@ const certificateSchema = new mongoose.Schema({
     emailSentAt: {
         type: Date
     },
-    // Keep the old fields for backward compatibility
     type: {
         type: String,
         enum: ['volunteer', 'participants', 'donation']

@@ -40,13 +40,9 @@ const CertificateGeneration: React.FC = () => {
     certificates 
   } = useCertificates();
   
-  // This is a temporary bridge until we fully refactor to use only CertificateContext
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).updateParticipantCertificateStatus = updateParticipantCertificateStatus;
     return () => {
-      // Clean up when component unmounts
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (window as any).updateParticipantCertificateStatus;
     };
   }, [updateParticipantCertificateStatus]);
@@ -64,13 +60,10 @@ const CertificateGeneration: React.FC = () => {
   useEffect(() => {
     if (selectedEventId) {
       loadParticipants(selectedEventId);
-      // Load certificates for this event
     }
   }, [selectedEventId, loadParticipants, loadCertificates]);
   
-  // Load participants for all events when component mounts
   useEffect(() => {
-    // Load participants for all events to get accurate counts
     events.forEach(event => {
       loadParticipants(event.id);
     });
@@ -88,7 +81,6 @@ const CertificateGeneration: React.FC = () => {
     const event = events.find(e => e.id === participant.eventId);
     
     if (selectedTemplate.type === 'image') {
-      // For image templates, return the structured data
       const templateData = JSON.parse(selectedTemplate.content || '{}');
       return {
         type: 'image',
@@ -106,7 +98,6 @@ const CertificateGeneration: React.FC = () => {
         })) || []
       };
     } else {
-      // For HTML templates, return the processed HTML
       return selectedTemplate.content
         .replace(/\{\{\s*participant_name\s*\}\}/g, participant.name)
         .replace(/\{\{\s*event_name\s*\}\}/g, event?.name || '')
@@ -121,18 +112,14 @@ const CertificateGeneration: React.FC = () => {
     
     setGenerating(true);
     
-    // Generate certificates using the certificate context
     for (let i = 0; i < eventParticipants.length; i++) {
       const participant = eventParticipants[i];
       if (!participant.certificateGenerated) {
         try {
-          // Use the certificate context to generate certificates
           const certificate = await generateCertificate(participant.id, selectedEventId);
           if (certificate) {
-            // Update the participant status
             const participantId = participant.id;
         
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (window as any).updateParticipantCertificateStatus?.(participantId, selectedEventId, certificate.id);
           }
         } catch (error) {
@@ -141,7 +128,6 @@ const CertificateGeneration: React.FC = () => {
       }
     }
     
-    // Reload certificates to refresh the list
     await loadCertificates(selectedEventId);
     console.log(selectedEventId);
 
@@ -150,13 +136,11 @@ const CertificateGeneration: React.FC = () => {
 
   const handleDownloadCertificate = async (participant: Participant, format: 'pdf' | 'jpg') => {
     try {
-      // First show preview if not already showing
       if (!previewParticipant) {
         handlePreview(participant);
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Get the preview content element
       const certificateElement = document.querySelector('#certificate-wrapper .certificate-preview-content') as HTMLElement;
       if (!certificateElement) {
         throw new Error('Certificate preview element not found');
@@ -173,7 +157,6 @@ const CertificateGeneration: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       } else {
-        // For JPG format
         const canvas = await html2canvas(certificateElement, {
           scale: 2,
           logging: false,
@@ -212,7 +195,6 @@ const CertificateGeneration: React.FC = () => {
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
-      // Add metadata
       pdf.setProperties({
         title: `Certificate - ${participant.name}`,
         subject: 'Certificate of Completion',

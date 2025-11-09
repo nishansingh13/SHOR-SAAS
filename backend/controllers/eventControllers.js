@@ -2,7 +2,6 @@ import EventModel from "../models/events.models.js";
 
 export const saveEvent = async (req, res) => {
     const payload = { ...req.body };
-    // Attach organizer for ownership
     if (req.user?.userId) {
         payload.organiserId = req.user.userId;
     }
@@ -21,7 +20,6 @@ export const saveEvent = async (req, res) => {
 
 export const getEvents = async (req, res) => {
     try {
-        // Admins see all; organizers only their events
         const filter = req.user?.role === 'organizer' ? { organiserId: req.user.userId } : {};
         const events = await EventModel.find(filter);
         res.status(200).json(events);
@@ -31,7 +29,6 @@ export const getEvents = async (req, res) => {
     }
 };
 
-// Public: list events for participant portal without authentication
 export const getPublicEvents = async (_req, res) => {
     try {
         const events = await EventModel.find({status: "active"});
@@ -59,7 +56,6 @@ export const updateEventById = async (req, res) => {
     }
 };  
 
-// New: Delete event by ID
 export const deleteEventById = async (req, res) => {
     const { id } = req.params;
     try {

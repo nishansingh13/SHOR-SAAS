@@ -3,12 +3,10 @@ import rzp from './rzp.js';
 
 const router = express.Router();
 
-// Create order
 router.post('/create', async (req, res) => {
     try {
         const { amount, currency = 'INR', receipt } = req.body;
 
-        // Basic validation
         if (amount === undefined || amount === null) {
             return res.status(400).json({ success: false, message: 'amount is required' });
         }
@@ -27,7 +25,6 @@ router.post('/create', async (req, res) => {
 
         return res.json({ success: true, order });
     } catch (error) {
-        // Razorpay library often nests details in error.error
         const apiError = error?.error || {};
         console.error('[orders/create] Razorpay order creation failed:', {
             message: error.message,
@@ -46,17 +43,13 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// Verify payment (optional, for demo)
 router.post('/verify', (req, res) => {
-    // For demo, just return success
-    // In production, verify signature
     res.json({
         success: true,
         message: 'Payment verified (demo)',
     });
 });
 
-// Get Razorpay key_id
 router.get('/key', (req, res) => {
     res.json({
         key: process.env.RZP_ID,

@@ -33,7 +33,6 @@ const ParticipantManagement: React.FC = () => {
   const [importData, setImportData] = useState<Record<string, string | number>[]>([]);
   const [csvContent, setCsvContent] = useState('');
   
-  // Initialize AOS
   useEffect(() => {
     AOS.init({
       duration: 800,
@@ -41,7 +40,6 @@ const ParticipantManagement: React.FC = () => {
     });
   }, []);
   
-  // Load all participants when component mounts
   useEffect(() => {
     loadAllParticipants();
   }, [loadAllParticipants]);
@@ -56,7 +54,6 @@ const ParticipantManagement: React.FC = () => {
         p.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-  // Calculate statistics
   const totalParticipants = filteredParticipants.length;
   const certificatesGenerated = filteredParticipants.filter(p => p.certificateGenerated).length;
   const emailsSent = filteredParticipants.filter(p => p.emailSent).length;

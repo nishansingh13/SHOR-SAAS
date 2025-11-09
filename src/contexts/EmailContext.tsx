@@ -20,7 +20,6 @@ const updateEmailStatus = async (email:string,eventId:string)=>{
             }
         } catch (error) {
             console.error("Error updating email status:", error);
-            // Re-throw the error so the caller can handle it
             throw error;
         }
     }
@@ -61,7 +60,6 @@ const sendEventApprovedNotificationMail = async(to : string , subject : string ,
 
     return <EmailContext.Provider value={value}>{children}</EmailContext.Provider>;
 }
-// eslint-disable-next-line react-refresh/only-export-components
 export const useEmail = (): EmailContextType => {
   const context = useContext(EmailContext);
   if (!context) throw new Error('useEmail must be used within an EmailProvider');

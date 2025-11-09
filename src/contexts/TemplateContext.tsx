@@ -25,7 +25,6 @@ interface TemplateContextType {
 
 const TemplateContext = createContext<TemplateContextType | undefined>(undefined);
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useTemplates = () => {
   const context = useContext(TemplateContext);
   if (context === undefined) {
@@ -34,7 +33,7 @@ export const useTemplates = () => {
   return context;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 type BackendTemplate = {
   _id?: string;
@@ -78,7 +77,6 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const res = await fetch(`${API_BASE}/templates`, { headers });
       if (!res.ok) {
         if (res.status === 401) {
-          // Token invalid/expired — clear auth on client
           console.warn('Templates fetch unauthorized (401), clearing session');
           logout();
           setTemplates([]);
@@ -93,9 +91,6 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Wait for auth verification to finish before attempting to load templates.
-  // This avoids a race where TemplateProvider mounts before AuthProvider has stored the
-  // token in localStorage, causing an intermittent "auth failed" until a manual refresh.
   useEffect(() => {
     if (authLoading) return; // still verifying session
 

@@ -12,22 +12,18 @@ const Dashboard: React.FC = () => {
   const { participants, loadAllParticipants } = useParticipants();
   const { templates } = useTemplates();
   
-  // Load all participants directly when dashboard is mounted
   useEffect(() => {
-    // Initialize AOS
     AOS.init({
       duration: 600,
       easing: 'ease-out-cubic',
       once: true
     });
 
-    // This will ensure we have the most up-to-date data
     loadAllParticipants().then(() => {
       console.log("Dashboard: All participants loaded");
     });
   }, [loadAllParticipants]);
 
-  // Calculate stats
   const totalEvents = events.length;
   const activeEvents = events.filter(e => e.status === 'active').length;
   const totalParticipants = participants.length;

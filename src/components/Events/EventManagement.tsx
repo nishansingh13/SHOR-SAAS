@@ -23,7 +23,7 @@ import { useParticipants } from '../../contexts/ParticipantContext';
 const EventManagement: React.FC = () => {
   const { events, createEvent, updateEvent, deleteEvent, refreshEvents, getRawEventById } = useEvents();
   const { user } = useAuth();
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   const FALLBACK_IMAGE = import.meta.env.VITE_FALLBACK_EVENT_IMAGE || '';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
@@ -42,7 +42,6 @@ const EventManagement: React.FC = () => {
     isTshirtAvailable: true,
   });
 
-  // Initialize AOS
   useEffect(() => {
     AOS.init({
       duration: 800,
@@ -50,7 +49,6 @@ const EventManagement: React.FC = () => {
     });
   }, []);
 
-  // Calculate statistics
   const totalEvents = events.length;
   const activeEvents = events.filter(e => e.status === 'active').length;
   const completedEvents = events.filter(e => e.status === 'completed').length;
@@ -113,7 +111,6 @@ const EventManagement: React.FC = () => {
       } catch (err) {
         console.error(err);
         setError('Failed to create event');
-        // Fallback to local add so UI isn’t blocked
         const mapped = {
           name: formData.title,
           description: formData.description,
@@ -157,7 +154,6 @@ const EventManagement: React.FC = () => {
       fd.append('file', file);
       fd.append('upload_preset', CLOUDINARY_PRESET);
 
-      // Use fetch; Cloudinary supports unsigned uploads with upload_preset
       const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`;
       const res = await fetch(url, {
         method: 'POST',
@@ -170,7 +166,6 @@ const EventManagement: React.FC = () => {
       }
 
       const json = await res.json();
-      // Cloudinary returns secure_url (prefer) and url
       const imageUrl = json.secure_url || json.url || '';
       console.log(imageUrl);
       if (!imageUrl) throw new Error('No URL returned from Cloudinary');

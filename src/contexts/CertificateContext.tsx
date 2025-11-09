@@ -20,7 +20,7 @@ interface CertificateResponse {
   emailSent?: boolean;
 }
 
-const server = "https://shor-saas.onrender.com/api";
+const server = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 interface CertificateContextType {
   certificates: Certificate[];
@@ -33,7 +33,6 @@ interface CertificateContextType {
 
 const CertificateContext = createContext<CertificateContextType | undefined>(undefined);
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useCertificates = () => {
   const context = useContext(CertificateContext);
   if (!context) throw new Error('useCertificates must be used within a CertificateProvider');

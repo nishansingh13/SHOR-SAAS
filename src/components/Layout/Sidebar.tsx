@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Calendar, BookTemplate as FileTemplate, Users, BarChart3, Award as LogoIcon, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, Calendar, BookTemplate as FileTemplate, Users, BarChart3, Award as LogoIcon, BarChart2, UserPlus } from 'lucide-react';
 
 type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
 
@@ -18,20 +18,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'templates', label: 'Templates', icon: FileTemplate },
-  { id: 'approvals', label: 'Approvals', icon: Users },
+    { id: 'approvals', label: 'Approvals', icon: Users },
+    { id: 'organizer-requests', label: 'Organizer Requests', icon: UserPlus },
     { id: 'participants', label: 'Participants', icon: Users },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'others', label: 'Others', icon: BarChart2 }
   ];
 
-  // Filter menu items based on user role
   const filteredMenuItems = menuItems.filter(item => {
     if (user?.role === 'organizer') {
-      // Organizers can't access reports
-      return item.id !== 'reports' && item.id !== 'approvals';
+      return item.id !== 'reports' && item.id !== 'approvals' && item.id !== 'organizer-requests';
     }
-    // Only admins should see approvals
-    if (item.id === 'approvals') return user?.role === 'admin';
+    if (item.id === 'approvals' || item.id === 'organizer-requests') return user?.role === 'admin';
     return true;
   });
 

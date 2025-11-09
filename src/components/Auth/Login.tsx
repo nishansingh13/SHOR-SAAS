@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, X, ArrowLeft } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Login: React.FC = () => {
@@ -62,6 +62,20 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center relative overflow-hidden">
+      {/* Back to Home Button */}
+      <motion.button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 flex items-center space-x-2 text-gray-600 hover:text-emerald-600 transition-colors duration-300 group"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform duration-300" />
+        <span className="font-medium">Back to Home</span>
+      </motion.button>
+
       {/* Subtle Background Elements */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-emerald-200/10 rounded-full blur-3xl"></div>
@@ -276,6 +290,30 @@ const Login: React.FC = () => {
               </motion.button>
             </motion.div>
           </form>
+        </motion.div>
+
+        {/* Organizer Registration Link */}
+        <motion.div 
+          className="mt-6 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.9 }}
+        >
+          <p className="text-sm text-gray-600 mb-3">
+            Want to organize events on SETU?
+          </p>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link
+              to="/organizer-registration"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 font-medium shadow-lg"
+            >
+              <Shield className="h-4 w-4" />
+              Apply as Organizer
+            </Link>
+          </motion.div>
         </motion.div>
 
         {/* Demo Credentials - Outside the card for better spacing */}

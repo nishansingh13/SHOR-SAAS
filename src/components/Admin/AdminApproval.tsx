@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useAuth } from '../../contexts/AuthContext';
 import useAdmin from '../../contexts/useAdmin';
 import { useEmail } from '../../contexts/EmailContext';
+import { RequestFromAdmin } from '../../contexts/AdminContext';
 import { 
   CheckCircle, 
   Clock, 
@@ -14,28 +15,27 @@ import {
   Building, 
   UserCheck, 
   CalendarCheck,
-  Shield
+  Shield,
+  X,
+  Phone,
+  MapPin,
+  CreditCard,
+  FileText,
+  Briefcase,
+  Eye
 } from 'lucide-react';
-
-type RequestFromAdmin = {
-  _id?: string;
-  id?: string;
-  email: string;
-  name: string;
-  GSTIN?: string;
-  status?: 'pending' | 'approved' | 'rejected';
-  createdAt?: string;
-};
 
 type EventRecord = { _id?: string; id?: string; title?: string; name?: string; organiser?: string; organiserId?: string };
 
 const AdminApproval: React.FC = () => {
   const { user } = useAuth();
-  const { approveOrganizer, approveEvent, fetchPendingOrganizers, fetchPendingEvents } = useAdmin();
+  const { approveOrganizer, approveEvent, fetchPendingOrganizers, fetchPendingEvents, fetchApprovedOrganizers } = useAdmin();
   const [loading, setLoading] = useState(true);
   const [organizers, setOrganizers] = useState<RequestFromAdmin[]>([]);
+  const [approvedOrganizers, setApprovedOrganizers] = useState<RequestFromAdmin[]>([]);
   const [events, setEvents] = useState<unknown[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrganizer, setSelectedOrganizer] = useState<RequestFromAdmin | null>(null);
   const {sendEventApprovedNotificationMail} = useEmail();
 
   useEffect(() => {
@@ -45,22 +45,24 @@ const AdminApproval: React.FC = () => {
     });
   }, []);
 
-  // Calculate statistics
   const totalPendingApprovals = organizers.length + events.length;
   const pendingOrganizers = organizers.length;
   const pendingEvents = events.length;
+  const totalApproved = approvedOrganizers.length;
 
   useEffect(() => {
   const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [orgData, evtData] = await Promise.all([
+        const [orgData, evtData, approvedOrgData] = await Promise.all([
           fetchPendingOrganizers(),
           fetchPendingEvents(),
+          fetchApprovedOrganizers(),
         ]);
     setOrganizers(orgData || []);
     setEvents((evtData as unknown[] | undefined) || []);
+    setApprovedOrganizers(approvedOrgData || []);
       } catch (err: unknown) {
         console.error('Failed to load approvals', err);
         const message = err instanceof Error ? err.message : String(err);
@@ -70,7 +72,7 @@ const AdminApproval: React.FC = () => {
       }
     };
     load();
-  }, [fetchPendingOrganizers, fetchPendingEvents]);
+  }, [fetchPendingOrganizers, fetchPendingEvents, fetchApprovedOrganizers]);
 
   const handleApproveEvent = async (id: string) => {
      console.log(id)
@@ -112,7 +114,7 @@ const AdminApproval: React.FC = () => {
           </div>
 
           {/* Statistics Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <motion.div 
               className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20"
               data-aos="fade-up"
@@ -160,6 +162,23 @@ const AdminApproval: React.FC = () => {
                 </div>
                 <div className="h-12 w-12 bg-white/20 rounded-xl flex items-center justify-center">
                   <Calendar className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20"
+              data-aos="fade-up"
+              data-aos-delay="400"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium">Approved Organizers</p>
+                  <p className="text-2xl font-bold text-white">{totalApproved}</p>
+                </div>
+                <div className="h-12 w-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-white" />
                 </div>
               </div>
             </motion.div>
@@ -238,7 +257,7 @@ const AdminApproval: React.FC = () => {
                                   <Building className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <div>
-                                  <h3 className="font-bold text-gray-900">{org.name}</h3>
+                                  <h3 className="font-bold text-gray-900">{org.fullName || org.name}</h3>
                                   <div className="flex items-center text-sm text-gray-600">
                                     <Mail className="h-3 w-3 mr-1" />
                                     {org.email}
@@ -246,10 +265,10 @@ const AdminApproval: React.FC = () => {
                                 </div>
                               </div>
                               
-                              {org.GSTIN && (
+                              {(org.gstCertificate || org.GSTIN) && (
                                 <div className="mb-3">
                                   <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-3 py-1 rounded-full">
-                                    GSTIN: {org.GSTIN}
+                                    GST Registered
                                   </span>
                                 </div>
                               )}
@@ -378,7 +397,338 @@ const AdminApproval: React.FC = () => {
             </motion.div>
           </div>
         )}
+
+        {/* Approved Organizers Section */}
+        {!loading && !error && approvedOrganizers.length > 0 && (
+          <motion.div 
+            className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden mt-8"
+            data-aos="fade-up"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-8 py-6">
+              <div className="flex items-center">
+                <div className="h-10 w-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mr-4">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Approved Organizers</h2>
+                  <p className="text-emerald-100 text-sm">{approvedOrganizers.length} organizers approved and active</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {approvedOrganizers.map((org, index) => {
+                  const id = org._id || org.id || '';
+                  return (
+                    <motion.div
+                      key={id}
+                      className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200 hover:shadow-lg transition-all duration-300"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.02 }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+                          <UserCheck className="h-6 w-6 text-green-600" />
+                        </div>
+                        <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full flex items-center">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          ACTIVE
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-gray-900 text-lg mb-2">{org.fullName || org.name}</h3>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Mail className="h-4 w-4 mr-2 text-emerald-600" />
+                          <span className="truncate">{org.email}</span>
+                        </div>
+                        
+                        {org.organizationName && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Building className="h-4 w-4 mr-2 text-emerald-600" />
+                            <span className="truncate">{org.organizationName}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        {org.approvedAt && (
+                          <div className="text-xs text-gray-500 flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {new Date(org.approvedAt).toLocaleDateString()}
+                          </div>
+                        )}
+                        
+                        <motion.button
+                          onClick={() => setSelectedOrganizer(org)}
+                          className="text-emerald-600 hover:text-emerald-700 text-xs font-semibold flex items-center"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Details
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
+
+      {/* View Organizer Details Modal */}
+      <AnimatePresence>
+        {selectedOrganizer && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedOrganizer(null)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-emerald-600 to-blue-700 px-8 py-6 sticky top-0 z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="h-12 w-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mr-4">
+                      <UserCheck className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">{selectedOrganizer.fullName || selectedOrganizer.name}</h2>
+                      <p className="text-emerald-100 text-sm">Organizer Details</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={() => setSelectedOrganizer(null)}
+                    className="h-10 w-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <X className="h-5 w-5 text-white" />
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-8 space-y-6">
+                {/* Personal Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <UserCheck className="h-5 w-5 mr-2 text-emerald-600" />
+                    Personal Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="flex items-center mb-2">
+                        <Mail className="h-4 w-4 mr-2 text-emerald-600" />
+                        <span className="text-sm font-semibold text-gray-600">Email</span>
+                      </div>
+                      <p className="text-gray-900 font-medium">{selectedOrganizer.email}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="flex items-center mb-2">
+                        <Phone className="h-4 w-4 mr-2 text-emerald-600" />
+                        <span className="text-sm font-semibold text-gray-600">Phone</span>
+                      </div>
+                      <p className="text-gray-900 font-medium">{selectedOrganizer.phone}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="flex items-center mb-2">
+                        <Briefcase className="h-4 w-4 mr-2 text-emerald-600" />
+                        <span className="text-sm font-semibold text-gray-600">Position</span>
+                      </div>
+                      <p className="text-gray-900 font-medium">{selectedOrganizer.position}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Organization Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <Building className="h-5 w-5 mr-2 text-blue-600" />
+                    Organization Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-blue-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Organization Name</span>
+                      <p className="text-gray-900 font-medium mt-1">{selectedOrganizer.organizationName}</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Organization Type</span>
+                      <p className="text-gray-900 font-medium mt-1 capitalize">{selectedOrganizer.organizationType?.replace('_', ' ')}</p>
+                    </div>
+                    {selectedOrganizer.website && (
+                      <div className="bg-blue-50 rounded-xl p-4 md:col-span-2">
+                        <span className="text-sm font-semibold text-gray-600">Website</span>
+                        <a href={selectedOrganizer.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-medium mt-1 block">
+                          {selectedOrganizer.website}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Address Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <MapPin className="h-5 w-5 mr-2 text-purple-600" />
+                    Address
+                  </h3>
+                  <div className="bg-purple-50 rounded-xl p-4">
+                    <p className="text-gray-900 font-medium">{selectedOrganizer.address}</p>
+                    <p className="text-gray-700 mt-2">
+                      {selectedOrganizer.city}, {selectedOrganizer.state} - {selectedOrganizer.pincode}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bank Details */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <CreditCard className="h-5 w-5 mr-2 text-green-600" />
+                    Bank Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Bank Name</span>
+                      <p className="text-gray-900 font-medium mt-1">{selectedOrganizer.bankName}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Account Holder</span>
+                      <p className="text-gray-900 font-medium mt-1">{selectedOrganizer.accountHolderName}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Account Number</span>
+                      <p className="text-gray-900 font-medium mt-1 font-mono">{selectedOrganizer.accountNumber}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">IFSC Code</span>
+                      <p className="text-gray-900 font-medium mt-1 font-mono">{selectedOrganizer.ifscCode}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documents */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-orange-600" />
+                    Documents
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <a href={selectedOrganizer.panCard} target="_blank" rel="noopener noreferrer" 
+                       className="bg-orange-50 rounded-xl p-4 hover:bg-orange-100 transition-colors">
+                      <span className="text-sm font-semibold text-gray-600">PAN Card</span>
+                      <p className="text-orange-600 font-medium mt-1 flex items-center">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Document
+                      </p>
+                    </a>
+                    <a href={selectedOrganizer.bankStatement} target="_blank" rel="noopener noreferrer"
+                       className="bg-orange-50 rounded-xl p-4 hover:bg-orange-100 transition-colors">
+                      <span className="text-sm font-semibold text-gray-600">Bank Statement</span>
+                      <p className="text-orange-600 font-medium mt-1 flex items-center">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Document
+                      </p>
+                    </a>
+                    {selectedOrganizer.gstCertificate && (
+                      <a href={selectedOrganizer.gstCertificate} target="_blank" rel="noopener noreferrer"
+                         className="bg-orange-50 rounded-xl p-4 hover:bg-orange-100 transition-colors">
+                        <span className="text-sm font-semibold text-gray-600">GST Certificate</span>
+                        <p className="text-orange-600 font-medium mt-1 flex items-center">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Document
+                        </p>
+                      </a>
+                    )}
+                    {selectedOrganizer.organizationLicense && (
+                      <a href={selectedOrganizer.organizationLicense} target="_blank" rel="noopener noreferrer"
+                         className="bg-orange-50 rounded-xl p-4 hover:bg-orange-100 transition-colors">
+                        <span className="text-sm font-semibold text-gray-600">Organization License</span>
+                        <p className="text-orange-600 font-medium mt-1 flex items-center">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Document
+                        </p>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <Briefcase className="h-5 w-5 mr-2 text-indigo-600" />
+                    Additional Information
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="bg-indigo-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Previous Experience</span>
+                      <p className="text-gray-900 mt-2">{selectedOrganizer.previousExperience}</p>
+                    </div>
+                    <div className="bg-indigo-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Expected Events Per Year</span>
+                      <p className="text-gray-900 mt-2">{selectedOrganizer.expectedEventsPerYear}</p>
+                    </div>
+                    <div className="bg-indigo-50 rounded-xl p-4">
+                      <span className="text-sm font-semibold text-gray-600">Reason For Joining</span>
+                      <p className="text-gray-900 mt-2">{selectedOrganizer.reasonForJoining}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Information */}
+                {selectedOrganizer.approvedAt && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center mb-2">
+                          <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                          <span className="font-bold text-gray-900">Approved</span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Approval Date: {new Date(selectedOrganizer.approvedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <span className="bg-green-100 text-green-800 text-sm font-bold px-4 py-2 rounded-full flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        ACTIVE
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-50 px-8 py-4 flex justify-end sticky bottom-0">
+                <motion.button
+                  onClick={() => setSelectedOrganizer(null)}
+                  className="bg-gradient-to-r from-emerald-600 to-blue-700 text-white px-8 py-3 rounded-xl hover:from-emerald-700 hover:to-blue-800 transition-all duration-300 font-semibold"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Close
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

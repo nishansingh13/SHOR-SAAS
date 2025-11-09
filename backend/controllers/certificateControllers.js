@@ -95,12 +95,10 @@ const certificateExists = async (req, res) => {
   }
 };
 
-// Get all certificates or filter by eventId
 const getAllCertificates = async (req, res) => {
   try {
     const { eventId } = req.query;
     const baseFilter = eventId ? { eventId } : {};
-    // Admin sees all; organizer only their certificates
     const roleFilter = req.user?.role === 'organizer' ? { organiserId: req.user.userId } : {};
     const filter = { ...baseFilter, ...roleFilter };
     const certificates = await CertificateModel.find(filter);
@@ -116,7 +114,6 @@ const getAllCertificates = async (req, res) => {
   }
 };
 
-// Verify a certificate by number
 const verifyCertificate = async (req, res) => {
   try {
     const { certificateNumber } = req.params;
@@ -137,7 +134,6 @@ const verifyCertificate = async (req, res) => {
       });
     }
     
-    // Return certificate details for verification
     return res.status(200).json({
       success: true,
       certificate
@@ -152,7 +148,6 @@ const verifyCertificate = async (req, res) => {
   }
 };
 
-// Download certificate as PDF or JPG
 const downloadCertificate = async (req, res) => {
   try {
     const { id } = req.params;
@@ -174,10 +169,7 @@ const downloadCertificate = async (req, res) => {
       });
     }
     
-    // In a real implementation, we would generate PDF/JPG here
-    // For now, we'll create a dummy file to download
     
-    // Create a sample HTML for certificate
     const html = `
       <!DOCTYPE html>
       <html>
@@ -212,12 +204,9 @@ const downloadCertificate = async (req, res) => {
       </html>
     `;
     
-    // For demonstration purposes, return a downloadable HTML file
     res.setHeader('Content-Type', format === 'pdf' ? 'application/pdf' : 'image/jpeg');
     res.setHeader('Content-Disposition', `attachment; filename="certificate-${certificate.certificateNumber}.${format}"`);
     
-    // In a real implementation, this would be a real PDF or JPG
-    // For now, we're just returning a JSON response
     return res.status(200).json({
       success: true,
       message: `Certificate download as ${format} would happen here in a real implementation`,
@@ -233,7 +222,6 @@ const downloadCertificate = async (req, res) => {
   }
 };
 
-// Send certificate via email
 const sendCertificateEmail = async (req, res) => {
   try {
     const { id } = req.params;
@@ -255,8 +243,6 @@ const sendCertificateEmail = async (req, res) => {
       });
     }
     
-    // NOTE: In a real implementation, we would send an email with the certificate
-    // For now, we'll just update the certificate record to mark it as sent
     certificate.emailSent = true;
     certificate.emailSentAt = new Date();
     await certificate.save();
@@ -277,19 +263,16 @@ const sendCertificateEmail = async (req, res) => {
 };
 
 const fillCertificateInfo = async (req, res) => {
-  // Expected to be called as PUT /participants/certificate with { certificateId } in body
   try {
     const certificateId = req.body.certificateId;
     if (!certificateId) {
       return res.status(400).json({ success: false, message: 'Certificate ID is required' });
     }
 
-    // Validate certificateId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(certificateId)) {
       return res.status(400).json({ success: false, message: 'Invalid Certificate ID' });
     }
 
-    // Find the certificate document to get the participantId and eventId
     const certificate = await CertificateModel.findById(certificateId);
     if (!certificate) {
       return res.status(404).json({ success: false, message: 'Certificate not found' });
@@ -300,7 +283,6 @@ const fillCertificateInfo = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Certificate does not reference a participant' });
     }
 
-    // Fetch participant to validate existing certificates for the same event
     const participantDoc = await ParticipantModel.findById(participantId).lean();
     if (!participantDoc) {
       return res.status(404).json({ success: false, message: 'Participant not found' });
@@ -308,10 +290,8 @@ const fillCertificateInfo = async (req, res) => {
 
     const existingCertificates = Array.isArray(participantDoc.certificates) ? participantDoc.certificates : [];
 
-    // If any certificate entry already references the same eventId, reject
     const alreadyForEvent = existingCertificates.some(entry => {
       if (!entry) return false;
-      // entry may be of shape { eventId, certificateId } or legacy ObjectId; check eventId if present
       if (entry.eventId) return String(entry.eventId) === String(certificate.eventId);
       return false;
     });
@@ -320,10 +300,8 @@ const fillCertificateInfo = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Certificate for this event already generated for participant' });
     }
 
-    // Prepare the entry containing certificate id and event id
     const entry = { certificateId: certificate._id, eventId: certificate.eventId };
 
-    // Add the entry to participant's certificates array (avoid duplicates)
     const participant = await ParticipantModel.findByIdAndUpdate(
       participantId,
       { $addToSet: { certificates: entry } },

@@ -12,7 +12,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const location = useLocation();
 
   const getPageTitle = () => {
-    // Extract path from location
     const path = location.pathname.substring(1) || 'dashboard';
     
     switch (path) {

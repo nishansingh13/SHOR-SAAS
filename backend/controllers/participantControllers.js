@@ -35,7 +35,6 @@ export const createParticipation = async (req, res) => {
     if (isVolunteer) {
       await EventModel.findByIdAndUpdate(event._id, { $inc: { volunteersApplied: 1 } });
     } else {
-      // Increment total participant count by created quantity
       await EventModel.findByIdAndUpdate(event._id, { $inc: { participantCount: qty } });
     }
 
@@ -55,7 +54,6 @@ export const createParticipation = async (req, res) => {
 export const getParticipantsByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    // If organizer, enforce access to own events only
     if (req.user?.role === 'organizer') {
       const event = await EventModel.findById(eventId).select('organiserId');
       if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -71,10 +69,8 @@ export const getParticipantsByEvent = async (req, res) => {
   }
 };
 
-// New function to get all participants regardless of event
 export const getAllParticipants = async (req, res) => {
   try {
-    // Admins get all participants; organizers only their events
     if (req.user?.role === 'organizer') {
       const events = await EventModel.find({ organiserId: req.user.userId }).select('_id');
       const eventIds = events.map(e => e._id);
@@ -110,7 +106,6 @@ export const getParticipantById = async (req, res) => {
   }
 };
 
-// Check if participant already exists for an event (to prevent duplicate registrations)
 export const checkDuplicateParticipant = async (req, res) => {
   try {
     const { email, eventId } = req.body;

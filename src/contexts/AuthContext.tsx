@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -26,7 +25,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -39,7 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (savedUser && token) {
         try {
-          // Verify token with the backend
           const res = await fetch(`${API_BASE}/auth/verify`, {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -49,7 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (res.ok) {
             setUser(JSON.parse(savedUser));
           } else {
-            // If token is invalid, clear the stored data
             localStorage.removeItem('user');
             localStorage.removeItem('token');
           }

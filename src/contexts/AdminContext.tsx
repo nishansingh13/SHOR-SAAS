@@ -5,11 +5,36 @@ export type RequestFromAdmin = {
   _id?: string;
   id?: string;
   email: string;
-  name: string;
-  GSTIN?: string;
-  status?: 'pending' | 'approved' | 'rejected';
+  fullName: string;
+  name?: string; // For backward compatibility
+  phone: string;
+  position: string;
+  organizationName: string;
+  organizationType: string;
+  website?: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
+  panCard: string;
+  gstCertificate?: string;
+  bankStatement: string;
+  organizationLicense?: string;
+  previousExperience: string;
+  expectedEventsPerYear: string;
+  reasonForJoining: string;
+  status?: 'pending' | 'under_review' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  reviewedBy?: { _id: string; name: string; email: string };
+  reviewedAt?: string;
+  approvedAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  GSTIN?: string; // For backward compatibility
 };
 
 export type EventRecord = {
@@ -38,18 +63,17 @@ export type AdminContextType = {
   approveEvent: (id: string) => Promise<unknown>;
   fetchPendingOrganizers: () => Promise<RequestFromAdmin[]>;
   fetchPendingEvents: () => Promise<EventRecord[]>;
+  fetchApprovedOrganizers: () => Promise<RequestFromAdmin[]>;
 };
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
-const server = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+const server = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const approveOrganizer = async (_id: string) => {
     const token = localStorage.getItem('token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    // backend route: POST /api/admin/approve-organizer expects an id (controller reads params in some versions)
-    // send id in body; if backend expects params it should be adjusted server-side.
     const res = await axios.post(`${server}/admin/approve-organizer`, { id: _id }, { headers });
     return res.data;
   };
@@ -58,12 +82,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const token = localStorage.getItem('token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await axios.post(`${server}/admin/approve-event`, { eventId: _id }, { headers });
-    return res.data;
-  };
-  const rejectEvent = async (_id: string) => {
-    const token = localStorage.getItem('token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await axios.post(`${server}/admin/reject-event`, { eventId: _id }, { headers });
     return res.data;
   };
 
@@ -75,28 +93,43 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return [];
   };
 
-  const fetchPendingEvents = async () => {
+  const fetchPendingEvents = async (): Promise<EventRecord[]> => {
         try{
             const token = localStorage.getItem('token');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const res = await axios.get(`${server}/admin/pending-events`, { headers });
-            if (res.status === 200) return res.data as RequestFromAdmin[];
+            if (res.status === 200) return res.data as EventRecord[];
             return [];
         }
         catch(err){
             console.error(err);
+            return [];
         }
+  };
+
+  const fetchApprovedOrganizers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(`${server}/organizer-requests?status=approved`, { headers });
+      if (res.status === 200 && res.data.data) {
+        return res.data.data as RequestFromAdmin[];
+      }
+      return [];
+    } catch (err) {
+      console.error('Error fetching approved organizers:', err);
+      return [];
+    }
   };
 
 
   return (
     <AdminContext.Provider
-      value={{ isAdmin, setIsAdmin, approveOrganizer, approveEvent, fetchPendingOrganizers, fetchPendingEvents, rejectEvent }}
+      value={{ isAdmin, setIsAdmin, approveOrganizer, approveEvent, fetchPendingOrganizers, fetchPendingEvents, fetchApprovedOrganizers }}
     >
       {children}
     </AdminContext.Provider>
   );
 };
 
-// Note: `useAdmin` hook moved to its own file to avoid fast-refresh warnings.
 export { AdminContext };

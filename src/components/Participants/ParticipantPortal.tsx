@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Users, Star, Award, Calendar, Filter, Search, X, CheckCircle, CreditCard, IndianRupee, Eye } from 'lucide-react';
+import { MapPin, Users, Star, Award, Calendar, Filter, Search, X, CheckCircle, CreditCard, IndianRupee, Eye, ArrowLeft, Home } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { useParticipants } from '../../contexts/ParticipantContext';
 import { useEvents } from '../../contexts/EventContext';
 import { useRazorpay } from '../../hooks/useRazorpay';
@@ -31,12 +32,13 @@ interface FilterState {
 }
 
 const ParticipantPortal: React.FC = () => {
+  const navigate = useNavigate();
   const { registerParticipant , paymentSuccessEmail } = useParticipants();
   const { publicEvents } = useEvents();
   console.log('Public events in ParticipantPortal:', publicEvents);
   const { initiatePayment, loading: paymentLoading, error: paymentError, setError: setPaymentError } = useRazorpay();
   
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   
   const [filteredEvents, setFilteredEvents] = useState<EventItem[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -46,7 +48,6 @@ const ParticipantPortal: React.FC = () => {
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   
-  // Registration form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -144,7 +145,6 @@ const ParticipantPortal: React.FC = () => {
     };
 
     try {
-      // First, check if participant is already registered for this event
       toast.loading('Checking registration status...', { id: 'checking' });
       
       const checkResponse = await fetch(`${API_BASE}/participants/check-duplicate`, {
@@ -171,7 +171,6 @@ const ParticipantPortal: React.FC = () => {
         const ticketPrice = selectedEvent.ticket.find(t => t.name === ticketName)?.price || 0;
         
         if (ticketPrice > 0) {
-          // Handle paid registration with Razorpay
           toast.loading('Preparing payment...', { id: 'payment' });
           
           try {
@@ -201,16 +200,13 @@ const ParticipantPortal: React.FC = () => {
             setPaymentError(errorMessage);
           }
           
-          // Don't set loading to false here since it's handled in the payment hook
           return;
         } else {
-          // Handle free registration
           await registerParticipant(baseParticipantData);
           resetForm();
           toast.success('🎉 Registration successful!');
         }
       } else {
-        // Handle volunteer registration
         await registerParticipant(baseParticipantData);
         resetForm();
         toast.success('🎉 Volunteer registration successful!');
@@ -235,7 +231,21 @@ const ParticipantPortal: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
-        <div className="bg-gradient-to-r from-emerald-600 to-blue-700 rounded-xl p-8 text-white shadow-2xl">
+        <div className="bg-gradient-to-r from-emerald-600 to-blue-700 rounded-xl p-8 text-white shadow-2xl relative">
+          {/* Back button */}
+          <motion.button
+            onClick={() => navigate('/')}
+            className="absolute top-4 left-4 flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-300"
+            whileHover={{ scale: 1.05, x: -2 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Home</span>
+          </motion.button>
+          
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -401,7 +411,7 @@ const ParticipantPortal: React.FC = () => {
                   Register
                 </motion.button>
                 
-                {event.volunteerCount !== undefined && event.volunteerCount > 0 && (
+                {event.volunteerCount !== undefined && event.volunteerCount > 0 ? (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -410,7 +420,7 @@ const ParticipantPortal: React.FC = () => {
                   >
                     Volunteer
                   </motion.button>
-                )}
+                ) : null}
               </div>
             </div>
           </motion.div>

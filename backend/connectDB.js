@@ -5,6 +5,5 @@ export const connectDB = async(req,res)=>{
         console.log("MongoDB connected successfully");
     } catch (error) {
         console.error("MongoDB connection failed:", error);
-        // res.status(500).send("Database connection failed");
     }
 }

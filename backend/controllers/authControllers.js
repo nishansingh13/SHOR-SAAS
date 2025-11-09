@@ -50,10 +50,28 @@ export const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
+    
+    console.log('🔐 Login attempt for email:', email);
+    
     const user = await UserModel.findOne({ email: String(email).toLowerCase().trim() });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) {
+      console.log('❌ User not found in database');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    console.log('✅ User found:', { id: user._id, email: user.email, role: user.role });
+    console.log('📝 Password provided:', password);
+    console.log('🔒 Hashed password in DB:', user.password);
+    
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+    console.log('🔍 Password match result:', match);
+    
+    if (!match) {
+      console.log('❌ Password does not match');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    console.log('✅ Login successful');
     const JWT_SECRET = process.env.JWT_SECRET;
     const token = jwt.sign({ userId: user._id.toString(), role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     return res.json({

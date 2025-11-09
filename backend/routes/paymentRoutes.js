@@ -5,12 +5,10 @@ import { createParticipation } from '../controllers/participantControllers.js';
 
 const router = express.Router();
 
-// Create order for event registration
 router.post('/create-order', async (req, res) => {
     try {
         const { amount, currency = 'INR', eventId, participantData } = req.body;
 
-        // Basic validation
         if (!amount || !eventId || !participantData) {
             return res.status(400).json({ 
                 success: false, 
@@ -26,7 +24,6 @@ router.post('/create-order', async (req, res) => {
             });
         }
 
-        // Create order with short receipt (max 40 chars)
         const timestamp = Date.now().toString().slice(-8); // Last 8 digits
         const receipt = `evt_${timestamp}`;
         const options = {
@@ -60,7 +57,6 @@ router.post('/create-order', async (req, res) => {
     }
 });
 
-// Verify payment and complete registration
 router.post('/verify-payment', async (req, res) => {
     try {
         const { 
@@ -71,7 +67,6 @@ router.post('/verify-payment', async (req, res) => {
             eventId 
         } = req.body;
 
-        // Check if required environment variables are present
         if (!process.env.RZP_KS) {
             console.error('RZP_KS environment variable is not set');
             return res.status(500).json({
@@ -80,7 +75,6 @@ router.post('/verify-payment', async (req, res) => {
             });
         }
 
-        // Verify payment signature
         const body = razorpay_order_id + "|" + razorpay_payment_id;
         const expectedSignature = crypto
             .createHmac('sha256', process.env.RZP_KS)
@@ -102,7 +96,6 @@ router.post('/verify-payment', async (req, res) => {
 
         console.log('Payment signature verified successfully:', razorpay_payment_id);
 
-        // Check for duplicate registration before creating participant
         try {
             const { checkDuplicateParticipant } = await import('../controllers/participantControllers.js');
             const duplicateCheck = await new Promise((resolve) => {
@@ -123,12 +116,9 @@ router.post('/verify-payment', async (req, res) => {
             }
         } catch (duplicateError) {
             console.error('Duplicate check failed:', duplicateError);
-            // Continue with registration if duplicate check fails
         }
 
-        // Payment verified, now create participant record
         try {
-            // Prepare participant data for registration
             const registrationData = {
                 ...participantData,
                 eventId,
@@ -141,7 +131,6 @@ router.post('/verify-payment', async (req, res) => {
                 }
             };
 
-            // Create participation record using existing controller
             const participantResult = await new Promise((resolve, reject) => {
                 const mockReq = {
                     body: registrationData
@@ -190,7 +179,6 @@ router.post('/verify-payment', async (req, res) => {
     }
 });
 
-// Get payment status
 router.get('/status/:paymentId', async (req, res) => {
     try {
         const { paymentId } = req.params;

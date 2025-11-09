@@ -20,7 +20,6 @@ const Reports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('30');
   const [selectedEvent, setSelectedEvent] = useState('all');
 
-  // Calculate statistics
   const totalEvents = events.length;
   const activeEvents = events.filter(e => e.status === 'active').length;
   const totalParticipants = participants.length;
@@ -29,7 +28,6 @@ const Reports: React.FC = () => {
   const successRate = totalParticipants > 0 ? Math.round((certificatesGenerated / totalParticipants) * 100) : 0;
   const emailDeliveryRate = certificatesGenerated > 0 ? Math.round((emailsSent / certificatesGenerated) * 100) : 0;
 
-  // Event performance data
   const eventPerformance = events.map(event => {
     const eventParticipants = participants.filter(p => p.eventId === event.id);
     const eventCertificates = eventParticipants.filter(p => p.certificateGenerated).length;
@@ -45,7 +43,6 @@ const Reports: React.FC = () => {
     };
   });
 
-  // Generate chart data (mock data for visualization)
   const chartData = [
     { month: 'Jan', certificates: 45, emails: 42 },
     { month: 'Feb', certificates: 78, emails: 75 },
@@ -56,7 +53,6 @@ const Reports: React.FC = () => {
   ];
 
   const downloadReport = (type: 'csv' | 'pdf') => {
-    // In a real application, this would generate and download the actual report
     console.log(`Downloading ${type.toUpperCase()} report...`);
   };
 

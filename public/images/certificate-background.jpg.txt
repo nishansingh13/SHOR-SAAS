@@ -1,3 +1,0 @@
-This file is a placeholder for a certificate background image.
-In a real project, you would replace this with an actual JPG image file.
-The image should be landscape-oriented and have a professional design suitable for certificates.

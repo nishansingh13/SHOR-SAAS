@@ -24,7 +24,6 @@ interface PaymentOptions {
 
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Razorpay: new (options: any) => {
       open: () => void;
     };
@@ -35,7 +34,7 @@ export const useRazorpay = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -58,7 +57,6 @@ export const useRazorpay = () => {
     return new Promise((resolve, reject) => {
       const executePayment = async () => {
         try {
-          // Load Razorpay script
           const scriptLoaded = await loadRazorpayScript();
           if (!scriptLoaded) {
             const error = new Error('Razorpay SDK failed to load. Please check your internet connection.');
@@ -69,7 +67,6 @@ export const useRazorpay = () => {
             return;
           }
 
-          // Create order
           const orderResponse = await fetch(`${API_BASE}/payments/create-order`, {
             method: 'POST',
             headers: {
@@ -95,7 +92,6 @@ export const useRazorpay = () => {
 
           const { order, key } = orderData;
 
-          // Razorpay payment options
           const razorpayOptions = {
             key,
             amount: order.amount,
@@ -105,7 +101,6 @@ export const useRazorpay = () => {
             order_id: order.id,
             handler: async function (response: RazorpayResponse) {
               try {
-                // Verify payment on backend
                 const verifyResponse = await fetch(`${API_BASE}/payments/verify-payment`, {
                   method: 'POST',
                   headers: {

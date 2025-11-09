@@ -34,7 +34,6 @@ const TemplateManagement: React.FC = () => {
     content: ''
   });
 
-  // Initialize AOS
   useEffect(() => {
     AOS.init({
       duration: 800,
@@ -42,7 +41,6 @@ const TemplateManagement: React.FC = () => {
     });
   }, []);
 
-  // Calculate statistics
   const totalTemplates = templates.length;
   const htmlTemplates = templates.filter(t => t.type === 'html').length;
   const imageTemplates = templates.filter(t => t.type === 'image').length;
@@ -123,7 +121,6 @@ const TemplateManagement: React.FC = () => {
   };
 
   const handleEditTemplate = (template: import('../../contexts/TemplateContext').Template) => {
-    // Prefill the create modal for editing
     setEditingTemplateId(template.id);
     setFormData({ name: template.name, type: template.type, content: template.content });
     setShowCreateModal(true);

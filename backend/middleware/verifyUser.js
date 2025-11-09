@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 
 export const verifyUser = (req, res, next) => {
-    // accept case-insensitive header and trim whitespace
         const authHeader = req.header("Authorization");
         if (!authHeader) {
             console.warn("Auth failed: Missing Authorization header for", req.method, req.originalUrl);
@@ -29,7 +28,6 @@ export const authorize = (req, res, next) => {
     if (!user) {
         return res.status(403).json({ message: "Forbidden" });
     }
-    // Check if user has the required role
     if (user.role !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
     }

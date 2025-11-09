@@ -49,13 +49,12 @@ const EventDetailPage: React.FC<EventDetailProps> = ({ event, onBack }) => {
   const { registerParticipant, paymentSuccessEmail } = useParticipants();
   const { initiatePayment, loading: paymentLoading, error: paymentError, setError: setPaymentError } = useRazorpay();
   
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://shor-saas.onrender.com/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   
   const [showModal, setShowModal] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Registration form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -109,7 +108,6 @@ const EventDetailPage: React.FC<EventDetailProps> = ({ event, onBack }) => {
     };
 
     try {
-      // First, check if participant is already registered for this event
       toast.loading('Checking registration status...', { id: 'checking' });
       
       const checkResponse = await fetch(`${API_BASE}/participants/check-duplicate`, {
@@ -136,7 +134,6 @@ const EventDetailPage: React.FC<EventDetailProps> = ({ event, onBack }) => {
         const ticketPrice = event.ticket.find(t => t.name === ticketName)?.price || 0;
         
         if (ticketPrice > 0) {
-          // Handle paid registration with Razorpay
           toast.loading('Preparing payment...', { id: 'payment' });
           
           try {
@@ -167,13 +164,11 @@ const EventDetailPage: React.FC<EventDetailProps> = ({ event, onBack }) => {
           
           return;
         } else {
-          // Handle free registration
           await registerParticipant(baseParticipantData);
           resetForm();
           toast.success('🎉 Registration successful!');
         }
       } else {
-        // Handle volunteer registration
         await registerParticipant(baseParticipantData);
         resetForm();
         toast.success('🎉 Volunteer registration successful!');

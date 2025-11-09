@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Simple Background Component (removed particles for better performance)
 const SimpleBackground: React.FC = () => {
   return (
     <div className="absolute inset-0 -z-10">
@@ -19,7 +18,6 @@ const GradientText: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   <span className="bg-gradient-to-r from-emerald-600 to-blue-700 bg-clip-text text-transparent font-bold">{children}</span>
 );
 
-// Animation variants
 
 const staggerContainer = {
   animate: {
@@ -128,6 +126,14 @@ const LandingPage: React.FC = () => {
             </motion.a>
           </nav>
           <div className="flex items-center gap-3">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/organizer-registration"
+                className="hidden md:inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-all"
+              >
+                <LogIn className="h-4 w-4" /> Become Organizer
+              </Link>
+            </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/login"
