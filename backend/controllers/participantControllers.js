@@ -1,5 +1,17 @@
 import ParticipantModel from '../models/participant.models.js';
 import EventModel from '../models/events.models.js';
+import TicketModel from '../models/ticket.models.js';
+
+// Generate QR code data
+const generateQRCode = (ticketNumber, eventId, participantId) => {
+  const data = JSON.stringify({
+    ticket: ticketNumber,
+    event: eventId,
+    participant: participantId,
+    timestamp: Date.now(),
+  });
+  return Buffer.from(data).toString('base64');
+};
 
 export const createParticipation = async (req, res) => {
   try {
@@ -32,6 +44,25 @@ export const createParticipation = async (req, res) => {
       tshirtSize: isVolunteer ? (tshirtSize || null) : null,
     });
 
+    // Create ticket for the participant
+    const date = new Date();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const ticketNumber = `TKT-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}-${random}`;
+    const qrCode = generateQRCode(ticketNumber, event._id, doc._id);
+
+    const ticketDoc = await TicketModel.create({
+      ticketNumber,
+      qrCode,
+      participant: doc._id,
+      event: event._id,
+      ticketType: ticket.name,
+      price: ticket.price,
+    });
+
+    // Update participant with ticket reference
+    doc.ticketId = ticketDoc._id;
+    await doc.save();
+
     if (isVolunteer) {
       await EventModel.findByIdAndUpdate(event._id, { $inc: { volunteersApplied: 1 } });
     } else {
@@ -44,6 +75,7 @@ export const createParticipation = async (req, res) => {
     return res.status(201).json({
       success: true,
       participant: doc,
+      ticket: ticketDoc,
       eventStats: updatedEvent
     });
   } catch (err) {
