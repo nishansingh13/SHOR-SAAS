@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import { apiLimiter, createLimiter } from '../middleware/rateLimiter.js';
 import {
   createOrganization,
   getAllOrganizations,
@@ -13,28 +14,28 @@ import {
 
 const router = express.Router();
 
-// Create organization
-router.post('/organizations', authenticateToken, createOrganization);
+// Create organization (rate limited)
+router.post('/organizations', authenticateToken, createLimiter, createOrganization);
 
-// Get all organizations (admin only)
-router.get('/organizations', authenticateToken, getAllOrganizations);
+// Get all organizations (admin only, rate limited)
+router.get('/organizations', authenticateToken, apiLimiter, getAllOrganizations);
 
-// Get user's organization
-router.get('/organizations/my-organization', authenticateToken, getUserOrganization);
+// Get user's organization (rate limited)
+router.get('/organizations/my-organization', authenticateToken, apiLimiter, getUserOrganization);
 
-// Get organization by ID
-router.get('/organizations/:id', authenticateToken, getOrganizationById);
+// Get organization by ID (rate limited)
+router.get('/organizations/:id', authenticateToken, apiLimiter, getOrganizationById);
 
-// Update organization
-router.put('/organizations/:id', authenticateToken, updateOrganization);
+// Update organization (rate limited)
+router.put('/organizations/:id', authenticateToken, apiLimiter, updateOrganization);
 
-// Add member to organization
-router.post('/organizations/:id/members', authenticateToken, addMember);
+// Add member to organization (rate limited)
+router.post('/organizations/:id/members', authenticateToken, apiLimiter, addMember);
 
-// Remove member from organization
-router.delete('/organizations/:id/members/:memberId', authenticateToken, removeMember);
+// Remove member from organization (rate limited)
+router.delete('/organizations/:id/members/:memberId', authenticateToken, apiLimiter, removeMember);
 
-// Delete organization
-router.delete('/organizations/:id', authenticateToken, deleteOrganization);
+// Delete organization (rate limited)
+router.delete('/organizations/:id', authenticateToken, apiLimiter, deleteOrganization);
 
 export default router;
