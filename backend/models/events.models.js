@@ -64,6 +64,24 @@ const eventSchema = new Schema(
       required: true,
       default: true,
     },
+    eventType: {
+      type: String,
+      enum: ['online', 'offline', 'hybrid'],
+      default: 'offline',
+      required: true,
+    },
+    onlineMeetingLink: {
+      type: String,
+      trim: true,
+    },
+    onlinePlatform: {
+      type: String,
+      trim: true,
+    },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+    },
      status : {
       type: String,
       enum: ["pending", "active", "rejected"],

@@ -21,7 +21,10 @@ const participantSchema = new Schema(
         eventId: { type: Schema.Types.ObjectId, ref: 'Event' }
       }
     ],
-    emailSent: { type: Boolean, default: false }
+    emailSent: { type: Boolean, default: false },
+    checkedIn: { type: Boolean, default: false },
+    checkInTime: { type: Date },
+    ticketId: { type: Schema.Types.ObjectId, ref: 'Ticket' }
   },
   { timestamps: true }
 );
