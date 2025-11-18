@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Calendar, BookTemplate as FileTemplate, Users, BarChart3, Award as LogoIcon, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, Calendar, BookTemplate as FileTemplate, Users, BarChart3, Award as LogoIcon, BarChart2, QrCode, UserCheck } from 'lucide-react';
 
-type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
+type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate' | 'validator' | 'checkin';
 
 interface SidebarProps {
   currentPage: RouteType;
@@ -20,6 +20,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage }) => {
     { id: 'templates', label: 'Templates', icon: FileTemplate },
   { id: 'approvals', label: 'Approvals', icon: Users },
     { id: 'participants', label: 'Participants', icon: Users },
+    { id: 'validator', label: 'Ticket Validator', icon: QrCode },
+    { id: 'checkin', label: 'Check-in Stats', icon: UserCheck },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'others', label: 'Others', icon: BarChart2 }
   ];

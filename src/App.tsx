@@ -6,6 +6,7 @@ import { EventProvider } from './contexts/EventContext';
 import { TemplateProvider } from './contexts/TemplateContext';
 import { ParticipantProvider } from './contexts/ParticipantContext';
 import { CertificateProvider } from './contexts/CertificateContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import Sidebar from './components/Layout/Sidebar';
@@ -14,7 +15,8 @@ import EventManagement from './components/Events/EventManagement';
 import TemplateManagement from './components/Templates/TemplateManagement';
 import AdminApproval from './components/Admin/AdminApproval';
 import ParticipantManagement from './components/Participants/ParticipantManagement';
-
+import TicketValidator from './components/Tickets/TicketValidator';
+import CheckInDashboard from './components/Tickets/CheckInDashboard';
 import EmailDistribution from './components/Email/EmailDistribution';
 import Reports from './components/Reports/Reports';
 import ParticipantPortal from './components/Participants/ParticipantPortal';
@@ -26,7 +28,7 @@ import LandingPage from './components/Landing/LandingPage';
 import RazorpayButton from './components/Payment/Razorpay';
 
 // Type defining all valid routes in the app
-type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate';
+type RouteType = 'dashboard' | 'events' | 'templates' | 'participants' | 'certificates' | 'email' | 'reports' | 'participate' | 'validator' | 'checkin';
 
 // Protected route component that requires authentication
 const ProtectedRoute = ( { children, role }: { role:string,children: React.ReactNode }) => {
@@ -93,6 +95,8 @@ const AdminLayout = () => {
               <Route path="/certificates" element={<CertificateGeneration />} />
               <Route path="/email" element={<EmailDistribution />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/validator" element={<TicketValidator />} />
+              <Route path="/checkin" element={<CheckInDashboard />} />
               <Route path="/others" element={<Merged/>}/>
               <Route path ='/some' element={<RazorpayButton />} />
             </Routes>
@@ -108,6 +112,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AdminProvider>
+        <OrganizationProvider>
         <EventProvider>
           <TemplateProvider>
             <ParticipantProvider>
@@ -133,6 +138,7 @@ function App() {
             </ParticipantProvider>
           </TemplateProvider>
         </EventProvider>
+        </OrganizationProvider>
         </AdminProvider>
       </AuthProvider>
     </BrowserRouter>

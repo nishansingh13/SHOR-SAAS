@@ -40,6 +40,9 @@ const EventManagement: React.FC = () => {
     ticket: [{ name: '', price: 0 } as { name: string; price: number }],
     volunteerCount: 0,
     isTshirtAvailable: true,
+    eventType: 'offline' as 'online' | 'offline' | 'hybrid',
+    onlineMeetingLink: '',
+    onlinePlatform: '',
   });
 
   // Initialize AOS
@@ -81,6 +84,9 @@ const EventManagement: React.FC = () => {
       ticket: formData.ticket,
       volunteerCount: formData.volunteerCount,
       isTshirtAvailable: formData.isTshirtAvailable,
+      eventType: formData.eventType,
+      onlineMeetingLink: formData.onlineMeetingLink,
+      onlinePlatform: formData.onlinePlatform,
       organiserId: user?.id 
     };
 
@@ -693,6 +699,52 @@ const EventManagement: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Event Type */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      Event Type
+                    </label>
+                    <select
+                      value={formData.eventType}
+                      onChange={(e) => setFormData({ ...formData, eventType: e.target.value as 'online' | 'offline' | 'hybrid' })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                    >
+                      <option value="offline">Offline (In-person)</option>
+                      <option value="online">Online (Virtual)</option>
+                      <option value="hybrid">Hybrid (Both)</option>
+                    </select>
+                  </div>
+
+                  {/* Online Event Fields */}
+                  {(formData.eventType === 'online' || formData.eventType === 'hybrid') && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Platform (e.g., Zoom, Teams)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.onlinePlatform}
+                          onChange={(e) => setFormData({ ...formData, onlinePlatform: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                          placeholder="e.g., Zoom"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Meeting Link
+                        </label>
+                        <input
+                          type="url"
+                          value={formData.onlineMeetingLink}
+                          onChange={(e) => setFormData({ ...formData, onlineMeetingLink: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tickets Section */}
                   <div>
